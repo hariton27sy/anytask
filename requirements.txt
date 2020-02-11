@@ -29,7 +29,7 @@ django-htmlmin==0.10.0
 django-jfu==1.0.7
 django-recaptcha==1.4.0
 django-reversion==1.8
-django==1.5.12
+django==1.11.28
 django_premailer==0.2.0
 entrypoints==0.2.3        # via nbconvert
 enum34==1.1.6             # via traitlets
@@ -66,7 +66,7 @@ pygments==2.2.0           # via ipython, nbconvert
 python-dateutil==2.7.3    # via dateutils, jupyter-client
 python-gettext==3.0
 python-magic==0.4.15
-pytz==2018.5              # via dateutils
+pytz==2018.5              # via dateutils, django
 pyzmq==17.0.0             # via jupyter-client, notebook
 requests==2.18.4
 scandir==1.7              # via pathlib2
@@ -89,4 +89,3 @@ whoosh==2.7.4
 widgetsnbextension==3.2.1  # via ipywidgets
 xmltodict==0.11.0
 yandex-oauth-py==0.1.1
-mysql
