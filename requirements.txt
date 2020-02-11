@@ -37,6 +37,7 @@ flup==1.0.3
 functools32==3.2.3.post2  # via jsonschema
 html5lib==1.0.1           # via bleach, django-htmlmin
 idna==2.6                 # via requests
+ipaddress==1.0.23         # via notebook
 ipdb==0.10.2
 ipykernel==4.5.2
 ipython-genutils==0.2.0   # via nbformat, notebook, traitlets
@@ -51,13 +52,14 @@ markupsafe==1.0           # via jinja2
 mistune==0.8.3            # via nbconvert
 nbconvert==5.3.1          # via notebook
 nbformat==4.4.0           # via ipywidgets, nbconvert, notebook
-notebook==5.5.0           # via ipython, widgetsnbextension
+notebook==5.7.8           # via ipython, widgetsnbextension
 pandocfilters==1.4.2      # via nbconvert
 pathlib2==2.3.2           # via ipython, pickleshare
 pexpect==4.6.0            # via ipython
 pickleshare==0.7.4        # via ipython
 pillow==5.2.0
 premailer==3.0.0          # via django-premailer
+prometheus-client==0.7.1  # via notebook
 prompt-toolkit==1.0.15    # via ipython
 psycopg2==2.7.5
 ptyprocess==0.6.0         # via pexpect, terminado
@@ -89,4 +91,3 @@ whoosh==2.7.4
 widgetsnbextension==3.2.1  # via ipywidgets
 xmltodict==0.11.0
 yandex-oauth-py==0.1.1
-mysql
