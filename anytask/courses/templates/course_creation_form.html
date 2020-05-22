@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load django_bootstrap_breadcrumbs %}
+{% load crispy_forms_tags %}
+
+{% block title %}Создать новый курс{% endblock %}
+
+{% block breadcrumbs %}
+    {{ block.super }}
+    {% breadcrumb "Cоздать новый курс" "" %}
+{% endblock breadcrumbs %}
+
+{% block scripts %}
+{% endblock scripts %}
+
+{% block content %}
+    {{ block.super }}
+    <h4>Форма для создания курса</h4>
+{% endblock %}

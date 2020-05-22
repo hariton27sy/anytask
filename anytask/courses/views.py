@@ -1085,3 +1085,9 @@ def view_statistic(request, course_id):
 
     if course.is_python_task:
         return pythontask.python_stat(request, course)
+
+
+@require_http_methods(['GET'])
+@login_required
+def creation_form(request):
+    return render(request, 'course_creation_form.html', {})
