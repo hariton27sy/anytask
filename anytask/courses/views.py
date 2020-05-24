@@ -1090,4 +1090,20 @@ def view_statistic(request, course_id):
 @require_http_methods(['GET'])
 @login_required
 def creation_form(request):
-    return render(request, 'course_creation_form.html', {})
+    user = request.user
+
+    context = {
+        "user": user,
+    }
+
+    return render(request, 'course_creation_form.html', context)
+
+
+@require_http_methods(['POST'])
+@login_required
+def ajax_send_form(request):
+    user = request.user
+    data = dict(request.POST)
+    print data
+
+    return HttpResponse("OK")

@@ -5,15 +5,68 @@
 
 {% block title %}Создать новый курс{% endblock %}
 
+{% block scripts %}
+    {% include "course_creation_form_js.html" %}
+    <link href="{{ STATIC_URL }}course_creation_form.css" rel='stylesheet'/>
+{% endblock scripts %}
+
 {% block breadcrumbs %}
     {{ block.super }}
     {% breadcrumb "Cоздать новый курс" "" %}
 {% endblock breadcrumbs %}
 
-{% block scripts %}
-{% endblock scripts %}
-
 {% block content %}
     {{ block.super }}
-    <h4>Форма для создания курса</h4>
+    <div class="row">
+        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-9 col-xl-9">
+            <div class="card">
+                <div class="card-block">
+                    <div class="tab-pane" id="new" role="tabpanel">
+                        <h5 class="card-title">Заявка на новый курс</h5>
+                        <p>Данная форма будет рассмотрена администраторами</p>
+                        <div class="new-msg-form">
+                            <form method="post" id="new_msg_form">
+                                {% csrf_token %}
+                                <div class="form-group row">
+                                    <label class="form-control-label col-xs-12 col-md-2" for="school_name">Школа</label>
+                                    <div class="controls col-xs-12 col-md-10">
+                                        <input type="text" class="form-control" name="school_name" id="school_name" autocomplete="off" tabindex="2">
+                                        <small class="text-help" ></small>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="form-control-label col-xs-12 col-md-2" for="course_name">Название</label>
+                                    <div class="controls col-xs-12 col-md-10">
+                                        <input type="text" class="form-control" name="course_name" id="course_name" autocomplete="off" tabindex="2">
+                                        <small class="text-help" ></small>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="form-control-label col-xs-12 col-md-2" for="course_description">Описание</label>
+                                    <div class="controls col-xs-12 col-md-10">
+                                        <textarea class="form-control" name="course_description" id="course_description"></textarea>
+                                    </div>
+                                </div>
+                                <div class="form-group form-search row form-recipients">
+                                    <label class="col-xs-12 col-md-2 form-control-label " for="course_teachers">Преподаватели</label>
+                                    <div class="controls col-xs-12 col-md-10" >
+                                        <input type="text" class="form-control typeahead" name="course_teachers" id="course_teachers" placeholder="начните вводить имя..." maxlength='25' >
+                                        <small class="text-help" ></small>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="form-control-label col-xs-12 col-md-12" for="comment">Комментарии к курсу</label>
+                                    <div class="controls col-xs-12 col-md-12">
+                                        <textarea class="form-control" name="comment" id="comment"></textarea>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-primary" id="btn_send_msg">Отправить</button>
+                                <button type="reset" class="btn btn-secondary" id="btn_send_cancel">Отмена</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}

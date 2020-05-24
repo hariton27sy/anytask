@@ -1,0 +1,370 @@
+{% load i18n %}
+<script src="{{ STATIC_URL }}jquery.validate.min.js"></script>
+<script src="https://malsup.github.io/jquery.form.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/1.10.12/js/dataTables.bootstrap4.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/1.2.2/js/dataTables.buttons.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/1.2.2/js/buttons.html5.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/1.2.2/js/buttons.bootstrap4.min.js"></script>
+<script type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-tagsinput/0.8.0/bootstrap-tagsinput.min.js"></script>
+<script src="{{ STATIC_URL }}tinymce/tinymce.min.js"></script>
+<script src="{{ STATIC_URL }}tinymce/jquery.tinymce.min.js"></script>
+<script src="{{ STATIC_URL }}prism.js"></script>
+
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.12/css/dataTables.bootstrap4.min.css"/>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/1.2.2/css/buttons.bootstrap4.min.css"/>
+<link rel="stylesheet" type="text/css"
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-tagsinput/0.8.0/bootstrap-tagsinput.css"/>
+<link href="{{ STATIC_URL }}prism.css" rel='stylesheet'/>
+<link href="{{ STATIC_URL }}tinymce-style-mail.css" rel='stylesheet'/>
+
+<script type="text/javascript">
+    $.extend($.fn.dataTable.defaults, {
+        searching: false,
+        ordering: false,
+        paging: true,
+        processing: true,
+        serverSide: true,
+        autoWidth: false,
+        dom: "<'row'<'mail-option-group col-xs-12 col-sm-12 col-md-8 col-lg-8'><'col-xs-12 col-sm-12 col-md-4 col-lg-4'f>>" +
+        "<'row'<'col-xs-12'tr>>" +
+        "<'row'<'col-xs-12 col-sm-12 col-md-4 col-lg-4'i><'col-xs-12 col-sm-12 col-md-8 col-lg-8'p>>",
+        columns: [
+            {
+                className: "inbox-small-cells select-cell",
+                data: null,
+                defaultContent: "<input type='checkbox' class='mail-checkbox'>"
+            },
+            {className: "sender"},
+            {className: "title"},
+            {className: "date text-right"}
+        ],
+        initComplete: function (settings, json) {
+            var $table = $(settings.nTable);
+            var $mail_option = $(".mail-option-group", $table.closest(".main-table"));
+
+            $("ul", ".dataTables_paginate").addClass("pagination-sm");
+
+            $mail_option.html($(".inbox-body").html());
+            if ($table.prop("id") == "table_inbox") {
+                $('.mail-undelete', $mail_option).remove();
+            } else if ($table.prop("id") == "table_sent") {
+                $('.mail-change-state', $mail_option).remove();
+                $('.mail-undelete', $mail_option).remove();
+            }
+            else if (($table.prop("id") == "table_trash")) {
+                $('.mail-change-state', $mail_option).remove();
+                $('.mail-delete', $mail_option).remove();
+            }
+
+            $table.closest(".main-table").collapse("show").siblings(".loading").hide();
+        },
+        language: {
+            "decimal": "",
+            "emptyTable": "{% trans 'soobshenij_net' %}",
+            "info": "_START_-_END_ {% trans 'iz' %} _TOTAL_",
+            "infoEmpty": "0",
+            "infoFiltered": "({% trans 'iz' %} _MAX_)",
+            "infoPostFix": "",
+            "thousands": ",",
+            "lengthMenu": "{% trans "pokazat" %} _MENU_",
+            "loadingRecords": "{% trans "zagruzka" %}",
+            "processing": "<span class='fa fa-circle-o-notch fa-spin'></span>&nbsp;{% trans "zagruzka" %}",
+            "search": "",
+            "searchPlaceholder": "{% trans "najti" %}",
+            "zeroRecords": "{% trans "nichego_ne_najdeno" %}",
+            "paginate": {
+                "next": '<i class="fa fa-angle-right" aria-hidden="true"></i>',
+                "previous": '<i class="fa fa-angle-left" aria-hidden="true"></i>'
+            }
+        }
+    });
+
+    $(document).ready(function () {
+        $(document).on('focusin', function (e) {
+            if ($(e.target).closest(".mce-window").length) {
+                e.stopImmediatePropagation();
+            }
+        });
+
+        $('[data-toggle="popover"]').popover({
+            trigger: 'hover',
+            template: '<div class="popover" role="tooltip">' +
+            '<div class="popover-arrow"></div>' +
+            '<div class="popover-content"></div>' +
+            '</div>'
+        });
+
+        var MAX_SEARCH_SGS = 6;
+        var users_bloodhound = new Bloodhound({
+            datumTokenizer: function (datum) {
+                return Bloodhound.tokenizers.whitespace(datum.fullname);
+            },
+            queryTokenizer: Bloodhound.tokenizers.whitespace,
+            remote: {
+                wildcard: '%QUERY',
+                url: '{% url "search.views.ajax_search_users" %}?q=%QUERY&max=' + MAX_SEARCH_SGS,
+                transform: function (response) {
+                    $('#navbar_search').data('up_limited', response.is_limited);
+                    return $.map(response.result, function (user) {
+                        return $.extend({}, user, {
+                            'id': "u_" + user.id,
+                            'id_post': user.id,
+                            'type': "user"
+                        });
+                    });
+                }
+            }
+        });
+
+        $('#course_teachers').tagsinput({
+            maxTags: 25,
+            itemValue: 'id',
+            itemText: 'fullname',
+            focusClass: 'focus',
+            tagClass: function (item) {
+                switch (item.type) {
+                    case 'user'   :
+                        return 'label label-success';
+                    case 'group'  :
+                        return 'label label-info';
+                    case 'course':
+                        return 'label label-primary';
+                    case 'status':
+                        return 'label label-warning';
+                    case 'preinit':
+                        return 'label label-default';
+                }
+            },
+            typeaheadjs: [
+                {
+                    highlight: true,
+                    hint: false,
+                    minLength: 3
+                },
+                {
+                    name: 'users',
+                    displayKey: 'fullname',
+                    source: users_bloodhound.ttAdapter(),
+                    templates: {
+                        suggestion: function (data) {
+                            var table_html = '<div class="sgs-result-up" data-url="{0}"><table>' +
+                                '<tr><td style="padding-right: 10px;"><img class="avatar" src="{1}" style="width: 30px; height: 30px;"></td>' +
+                                '<td><div><strong>{2}</strong></div>{3}</td></tr>' +
+                                '<tr><td></td><td>{4}</td></tr>' +
+                                '<tr><td></td><td><strong>{% trans "loginy" %}</strong></td></tr>' +
+                                '<tr><td></td><td>{5}@ <small class="text-muted">Anytask</small></td></tr>' +
+                                '{6}' +
+                                '{7}' +
+                                '</table></div>';
+                            var email_html = '';
+                            var ya_contest_login_html = '';
+                            var ya_passport_email_html = '';
+                            var avatar = data.avatar;
+                            var status_html = '';
+                            var status_template = '<span class="label label-status-sgs" style="background-color: {0}">{1}</span>';
+                            var MAX_STATUSES = 2;
+                            var status_counter = 0;
+
+                            while (status_counter < data.statuses.length) {
+                                if (status_counter == MAX_STATUSES) {
+                                    status_html += '<span class="label label-status-sgs label-default ">{% trans 'yeshcho' %} ' + (data.statuses.length - MAX_STATUSES) + '</span>';
+                                    break;
+                                }
+
+                                status_html += status_template.format(data.statuses[status_counter][1], data.statuses[status_counter][0]);
+                                ++status_counter;
+                            }
+
+                            if (!avatar)
+                                avatar = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mm&f=y';
+                            if (data.email)
+                                email_html = '<div class="sgs-email">{0}</div>'.format(data.email);
+                            if (data.ya_contest_login)
+                                ya_contest_login_html = '<tr><td></td><td>{0}@ <small class="text-muted">{% trans "jakontest" %}</small></td></tr>'.format(data.ya_contest_login);
+                            if (data.ya_passport_email)
+                                ya_passport_email_html = '<tr><td></td><td>{0} <small class="text-muted">{% trans "ja.pochta" %}</small></td></tr>'.format(data.ya_passport_email);
+                            return table_html.format(data.url, avatar, data.fullname, email_html, status_html, data.username, ya_contest_login_html, ya_passport_email_html)
+                        }
+                    }
+                }
+            ]
+        });
+
+        $('.tt-menu').on("mouseleave", function () {
+                $(this).find('.tt-cursor').removeClass('tt-cursor');
+            }
+        ).on("mouseenter", 'div.search-show-more', function () {
+                $(this).closest('.tt-menu').find('.tt-cursor').removeClass('tt-cursor');
+            }
+        );
+
+        $('#course_teachers').on('itemAdded', function (e) {
+            var $course_teachers = $('#course_teachers');
+            if ($course_teachers.data(e.item.type) === undefined) {
+                $course_teachers.data(e.item.type, []);
+            }
+            $course_teachers.data(e.item.type).push(e.item.id_post);
+            new_msg_form_validator.element("#course_teachers");
+        }).on('itemRemoved', function (e) {
+            var $course_teachers = $('#course_teachers');
+            var index = $.inArray(e.item.id_post, $course_teachers.data(e.item.type));
+
+            if (index != -1) {
+                $course_teachers.data(e.item.type).splice(index, 1)
+            }
+
+            new_msg_form_validator.element("#course_teachers");
+        });
+
+        $("#course_description").tinymce({
+            language: '{{ user.profile.language }}',
+            skin: 'bootstrap4',
+            menubar: false,
+            content_css: [
+                'https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/css/bootstrap.min.css',
+                '{{ STATIC_URL }}tinymce-style-mail.css',
+                '{{ STATIC_URL }}prism.css'
+            ],
+            setup: function (editor) {
+                editor.addMenuItem('codesample', {
+                    icon: 'codesample',
+                    text: 'Insert/Edit code sample',
+                    cmd: 'codesample'
+                });
+            },
+            init_instance_callback: function (editor) {
+                $('#loading_new').hide();
+                $('.new-msg-form').collapse('show');
+                $('.mce-i-template', '.mce-toolbar').closest('.mce-container').addClass('hidden');
+            },
+            plugins: [
+                'autoresize autolink codesample hr image link lists',
+                'table textpattern wordcount contextmenu paste nonbreaking variable'
+            ],
+            toolbar: 'undo redo | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | image link hr | blockquote codesample table | preview_text | {% if user.is_staff %}variable{% endif %}',
+            autoresize_bottom_margin: 10,
+            autoresize_overflow_padding: 10,
+            autoresize_min_height: 300,
+            autosave_ask_before_unload: false,
+            image_description: false,
+            link_assume_external_targets: true,
+            relative_urls: false,
+            remove_script_host: false,
+            default_link_target: "_blank",
+            target_list: false,
+            link_title: false,
+            table_default_attributes: {
+                "class": 'table table-bordered table-comment'
+            },
+            textpattern_patterns: [
+                {start: '1. ', cmd: 'InsertOrderedList'}
+            ],
+            contextmenu: "link image codesample",
+            paste_auto_cleanup_on_paste: true,
+            paste_remove_styles: true,
+            paste_remove_styles_if_webkit: true,
+            paste_strip_class_attributes: true,
+            nonbreaking_force_tab: true,
+            variables: [
+                {
+                    title: '{% trans "familiya" %}',
+                    description: '{% trans "familiya_poluchatelya" %}',
+                    content: '\{\{ last_name \}\}'
+                },
+                {
+                    title: '{% trans "imja" %}',
+                    description: '{% trans "imja_poluchatelya" %}',
+                    content: '\{\{ first_name \}\}'
+                },
+            ],
+        });
+
+        $('#variable').change(function () {
+            $('.mce-i-template', '.mce-toolbar').closest('.mce-container').toggleClass('hidden');
+        });
+
+        var new_msg_form_validator = $('#new_msg_form').validate({
+            submitHandler: function (form) {
+                $("body").prepend('<div id="blockDiv"><div><span class="fa fa-circle-o-notch fa-spin"></span>&nbsp;Отправка</div></div>');
+                var $course_teachers = $('#course_teachers');
+
+                $.post('{% url "courses.views.ajax_send_form" %}', {
+                    'csrfmiddlewaretoken': "{{ csrf_token }}",
+                    'school_name': $("#school_name").val(),
+                    'course_name': $("#course_name").val(),
+                    'course_description': $("#course_description").val(),
+                    'course_teachers[]': $course_teachers.data('user'),
+                    'comment': $("#comment").val(),
+                }).always(function () {
+                        $("#blockDiv", "body").remove();
+                        $('li[href="#inbox"]', '.mailbox_menu ').click();
+                    });
+            },
+            ignore: ':hidden:not("#course_teachers")',
+            onfocusout: false,
+            rules: {
+                course_teachers: {
+                    required: true,
+                    maxlength: false
+                },
+            },
+
+            highlight: function (input) {
+                $(input).closest('.form-group').removeClass('has-success').addClass('has-danger');
+            },
+
+            success: function (label) {
+                label.addClass('valid');
+                label.closest('.form-group').removeClass('has-danger');
+            },
+
+            messages: {
+                course_teachers: {
+                    required: "укажите преподавателя"
+                },
+            },
+
+            errorPlacement: function (error, element) {
+                $(element).closest("div.controls").find('small.text-help').empty().append(error);
+            }
+        });
+
+        $("#btn_send_cancel").click(function () {
+            $('li[href="#inbox"]', '.mailbox_menu ').click();
+        });
+
+        $(".tt-input", ".bootstrap-tagsinput").keydown(function (e) {
+            if (e.which === 9) {
+                e.preventDefault();
+                new_msg_form_validator.element("#course_teachers");
+
+                {#if (!$(this).closest(".form-group ").hasClass("has-danger"))#}
+                {#    $('#new_title').focus();#}
+            }
+            if (e.which === 13) {
+                new_msg_form_validator.element("#course_teachers");
+            }
+        });
+
+        {#$("#new_title").keydown(function (e) {#}
+        {#    if (e.which === 13 || e.which === 9) {#}
+        {#        new_msg_form_validator.element("#new_title");#}
+        {##}
+        {#        if (!$(this).closest(".form-group ").hasClass("has-danger"))#}
+        {#            tinymce.execCommand('mceFocus', false, 'course_description');#}
+        {#    }#}
+        {#    if (e.which === 9) {#}
+        {#        e.preventDefault();#}
+        {#    }#}
+        {#);#}
+
+        $("#btn_send_msg").click(function () {
+            $("#new_msg_form").submit();
+        });
+
+        var url_hash = window.location.hash ? window.location.hash : "#inbox";
+        $('[href="' + url_hash + '"]', '.mailbox_menu ').click();
+    });
+</script>
