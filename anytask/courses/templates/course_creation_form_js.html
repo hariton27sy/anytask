@@ -20,67 +20,6 @@
 <link href="{{ STATIC_URL }}tinymce-style-mail.css" rel='stylesheet'/>
 
 <script type="text/javascript">
-    $.extend($.fn.dataTable.defaults, {
-        searching: false,
-        ordering: false,
-        paging: true,
-        processing: true,
-        serverSide: true,
-        autoWidth: false,
-        dom: "<'row'<'mail-option-group col-xs-12 col-sm-12 col-md-8 col-lg-8'><'col-xs-12 col-sm-12 col-md-4 col-lg-4'f>>" +
-        "<'row'<'col-xs-12'tr>>" +
-        "<'row'<'col-xs-12 col-sm-12 col-md-4 col-lg-4'i><'col-xs-12 col-sm-12 col-md-8 col-lg-8'p>>",
-        columns: [
-            {
-                className: "inbox-small-cells select-cell",
-                data: null,
-                defaultContent: "<input type='checkbox' class='mail-checkbox'>"
-            },
-            {className: "sender"},
-            {className: "title"},
-            {className: "date text-right"}
-        ],
-        initComplete: function (settings, json) {
-            var $table = $(settings.nTable);
-            var $mail_option = $(".mail-option-group", $table.closest(".main-table"));
-
-            $("ul", ".dataTables_paginate").addClass("pagination-sm");
-
-            $mail_option.html($(".inbox-body").html());
-            if ($table.prop("id") == "table_inbox") {
-                $('.mail-undelete', $mail_option).remove();
-            } else if ($table.prop("id") == "table_sent") {
-                $('.mail-change-state', $mail_option).remove();
-                $('.mail-undelete', $mail_option).remove();
-            }
-            else if (($table.prop("id") == "table_trash")) {
-                $('.mail-change-state', $mail_option).remove();
-                $('.mail-delete', $mail_option).remove();
-            }
-
-            $table.closest(".main-table").collapse("show").siblings(".loading").hide();
-        },
-        language: {
-            "decimal": "",
-            "emptyTable": "{% trans 'soobshenij_net' %}",
-            "info": "_START_-_END_ {% trans 'iz' %} _TOTAL_",
-            "infoEmpty": "0",
-            "infoFiltered": "({% trans 'iz' %} _MAX_)",
-            "infoPostFix": "",
-            "thousands": ",",
-            "lengthMenu": "{% trans "pokazat" %} _MENU_",
-            "loadingRecords": "{% trans "zagruzka" %}",
-            "processing": "<span class='fa fa-circle-o-notch fa-spin'></span>&nbsp;{% trans "zagruzka" %}",
-            "search": "",
-            "searchPlaceholder": "{% trans "najti" %}",
-            "zeroRecords": "{% trans "nichego_ne_najdeno" %}",
-            "paginate": {
-                "next": '<i class="fa fa-angle-right" aria-hidden="true"></i>',
-                "previous": '<i class="fa fa-angle-left" aria-hidden="true"></i>'
-            }
-        }
-    });
-
     $(document).ready(function () {
         $(document).on('focusin', function (e) {
             if ($(e.target).closest(".mce-window").length) {
@@ -91,9 +30,9 @@
         $('[data-toggle="popover"]').popover({
             trigger: 'hover',
             template: '<div class="popover" role="tooltip">' +
-            '<div class="popover-arrow"></div>' +
-            '<div class="popover-content"></div>' +
-            '</div>'
+                '<div class="popover-arrow"></div>' +
+                '<div class="popover-content"></div>' +
+                '</div>'
         });
 
         var MAX_SEARCH_SGS = 6;
@@ -118,7 +57,9 @@
             }
         });
 
-        $('#course_teachers').tagsinput({
+        var $course_teachers = $('#course_teachers');
+
+        $course_teachers.tagsinput({
             maxTags: 25,
             itemValue: 'id',
             itemText: 'fullname',
@@ -200,22 +141,20 @@
             }
         );
 
-        $('#course_teachers').on('itemAdded', function (e) {
-            var $course_teachers = $('#course_teachers');
+        $course_teachers.on('itemAdded', function (e) {
             if ($course_teachers.data(e.item.type) === undefined) {
                 $course_teachers.data(e.item.type, []);
             }
             $course_teachers.data(e.item.type).push(e.item.id_post);
-            new_msg_form_validator.element("#course_teachers");
+            course_creation_form_validator.element("#course_teachers");
         }).on('itemRemoved', function (e) {
-            var $course_teachers = $('#course_teachers');
             var index = $.inArray(e.item.id_post, $course_teachers.data(e.item.type));
 
-            if (index != -1) {
+            if (index !== -1) {
                 $course_teachers.data(e.item.type).splice(index, 1)
             }
 
-            new_msg_form_validator.element("#course_teachers");
+            course_creation_form_validator.element("#course_teachers");
         });
 
         $("#course_description").tinymce({
@@ -236,14 +175,14 @@
             },
             init_instance_callback: function (editor) {
                 $('#loading_new').hide();
-                $('.new-msg-form').collapse('show');
+                $('.course-creation-form').collapse('show');
                 $('.mce-i-template', '.mce-toolbar').closest('.mce-container').addClass('hidden');
             },
             plugins: [
                 'autoresize autolink codesample hr image link lists',
                 'table textpattern wordcount contextmenu paste nonbreaking variable'
             ],
-            toolbar: 'undo redo | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | image link hr | blockquote codesample table | preview_text | {% if user.is_staff %}variable{% endif %}',
+            toolbar: 'undo redo | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | image link hr | blockquote codesample table | preview_text',
             autoresize_bottom_margin: 10,
             autoresize_overflow_padding: 10,
             autoresize_min_height: 300,
@@ -281,14 +220,20 @@
             ],
         });
 
-        $('#variable').change(function () {
-            $('.mce-i-template', '.mce-toolbar').closest('.mce-container').toggleClass('hidden');
-        });
-
-        var new_msg_form_validator = $('#new_msg_form').validate({
+        var course_creation_form_validator = $('#course_creation_form').validate({
             submitHandler: function (form) {
                 $("body").prepend('<div id="blockDiv"><div><span class="fa fa-circle-o-notch fa-spin"></span>&nbsp;Отправка</div></div>');
-                var $course_teachers = $('#course_teachers');
+
+                const status = document.createElement('div');
+                status.classList.add('alert');
+                status.setAttribute('role', 'alert');
+                const status_close = document.createElement('a');
+                status_close.classList.add('close');
+                status_close.setAttribute('data-dismiss', 'alert');
+                status_close.innerText = '×';
+                status.appendChild(status_close);
+                const status_description = document.createElement('span');
+                status.appendChild(status_description);
 
                 $.post('{% url "courses.views.ajax_send_form" %}', {
                     'csrfmiddlewaretoken': "{{ csrf_token }}",
@@ -297,10 +242,19 @@
                     'course_description': $("#course_description").val(),
                     'course_teachers[]': $course_teachers.data('user'),
                     'comment': $("#comment").val(),
+                }).done(function () {
+                    status.classList.add('alert-success');
+                    status_description.innerText = 'Ваша заявка принята';
+                }).fail(function () {
+                    status.classList.add('alert-danger');
+                    status_description.innerText = 'Произошла ошибка при отправке';
                 }).always(function () {
-                        $("#blockDiv", "body").remove();
-                        $('li[href="#inbox"]', '.mailbox_menu ').click();
-                    });
+                    $("#blockDiv", "body").remove();
+                    $("#sending_status").append(status);
+                    $('html, body').animate({
+                        scrollTop: $('html').offset().top
+                    }, 500);
+                });
             },
             ignore: ':hidden:not("#course_teachers")',
             onfocusout: false,
@@ -331,40 +285,18 @@
             }
         });
 
-        $("#btn_send_cancel").click(function () {
-            $('li[href="#inbox"]', '.mailbox_menu ').click();
-        });
-
         $(".tt-input", ".bootstrap-tagsinput").keydown(function (e) {
             if (e.which === 9) {
                 e.preventDefault();
-                new_msg_form_validator.element("#course_teachers");
-
-                {#if (!$(this).closest(".form-group ").hasClass("has-danger"))#}
-                {#    $('#new_title').focus();#}
+                course_creation_form_validator.element("#course_teachers");
             }
             if (e.which === 13) {
-                new_msg_form_validator.element("#course_teachers");
+                course_creation_form_validator.element("#course_teachers");
             }
         });
 
-        {#$("#new_title").keydown(function (e) {#}
-        {#    if (e.which === 13 || e.which === 9) {#}
-        {#        new_msg_form_validator.element("#new_title");#}
-        {##}
-        {#        if (!$(this).closest(".form-group ").hasClass("has-danger"))#}
-        {#            tinymce.execCommand('mceFocus', false, 'course_description');#}
-        {#    }#}
-        {#    if (e.which === 9) {#}
-        {#        e.preventDefault();#}
-        {#    }#}
-        {#);#}
-
-        $("#btn_send_msg").click(function () {
-            $("#new_msg_form").submit();
+        $("#btn_send_form").click(function () {
+            $("#course_creation_form").submit();
         });
-
-        var url_hash = window.location.hash ? window.location.hash : "#inbox";
-        $('[href="' + url_hash + '"]', '.mailbox_menu ').click();
     });
 </script>
