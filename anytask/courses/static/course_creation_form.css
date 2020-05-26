@@ -56,7 +56,6 @@ img.avatar-sm {
     background-image: none;
     border: 1px solid #ccc;
     border-radius: .25rem;
-    margin-bottom: 1.2rem;
 }
 
 .bootstrap-tagsinput.focus {
@@ -87,10 +86,6 @@ img.avatar-sm {
 
 .has-danger .bootstrap-tagsinput {
     border-color: #d9534f;
-}
-
-small.text-help .error {
-    margin: -1.2rem 0 0 0;
 }
 
 #blockDiv {
@@ -137,4 +132,74 @@ blockquote.replay-quote:after {
     width: 100%;
     border-color: #f3f3f3 !important;
     color: #5c5c5c;
+}
+
+.nowrap {
+    white-space: nowrap;
+}
+
+.bootstrap-select .dropdown-toggle:focus {
+    outline: none !important;
+}
+
+.dropdown-item:focus {
+    outline: none;
+    background-color: #fff;
+}
+
+.center-align {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    align-content: center;
+}
+
+.form-check {
+    position: relative;
+    flex-grow: 1;
+}
+
+input[name="format"] {
+    vertical-align: top;
+    width: 1.2rem;
+    height: 1.2rem;
+}
+input[name="format"] + label {
+    cursor: pointer;
+    display: block;
+    margin-bottom: 0;
+}
+input[name="format"]:not(checked) {
+    position: absolute;
+    opacity: 0;
+}
+input[name="format"]:not(checked) + label {
+    position: relative;
+    padding: 0 0 0 2rem;
+}
+input[name="format"]:not(checked) + label:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1.2rem;
+    height: 1.2rem;
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    background: #fff;
+}
+input[name="format"]:not(checked) + label:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 50%;
+    background: #0275d8;
+    opacity: 0;
+    transition: all .2s;
+}
+input[name="format"]:checked + label:after {
+    opacity: 1;
 }

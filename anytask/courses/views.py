@@ -22,7 +22,7 @@ from courses.models import Course, DefaultTeacher, StudentCourseMark, MarkField,
 from groups.models import Group
 from tasks.models import Task, TaskGroupRelations
 from years.models import Year
-from years.common import get_current_year
+from years.common import get_current_year, get_or_create_current_year
 from anycontest.common import get_contest_info, FakeResponse
 from issues.models import Issue
 from issues.issueFilter import IssueFilter
@@ -1091,9 +1091,21 @@ def view_statistic(request, course_id):
 @login_required
 def creation_form(request):
     user = request.user
+    current_year = get_or_create_current_year()
+    years = [
+        {
+            "value": current_year,
+            "comment": "текущий",
+        },
+        {
+            "value": Year.objects.get_or_create(start_year=current_year.start_year + 1)[0],
+            "comment": "новый",
+        }
+    ]
 
     context = {
         "user": user,
+        "years": years,
     }
 
     return render(request, 'course_creation_form.html', context)

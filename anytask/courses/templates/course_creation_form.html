@@ -49,12 +49,50 @@
                                     </div>
                                 </div>
                                 <div class="form-group row">
-                                    <label class="form-control-label col-xs-12 col-md-2" for="course_description">
-                                        Описание
+                                    <label class="form-control-label col-xs-12 col-md-2" for="course_year">
+                                        Учебный год
                                     </label>
                                     <div class="controls col-xs-12 col-md-10">
-                                        <textarea class="form-control" name="course_description"
-                                                  id="course_description"></textarea>
+                                        <select class="selectpicker form-control show-tick"
+                                                id="course_year" name="course_year">
+                                            {% for year in years %}
+                                                <option class="dropdown-item">
+                                                    {{ year.value }} ({{ year.comment }})
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                        <small class="text-help"></small>
+                                    </div>
+                                </div>
+                                <div class="form-group form-search row form-recipients">
+                                    <label class="col-xs-12 col-md-2 form-control-label " for="course_format">
+                                        Формат
+                                    </label>
+                                    <div class="controls col-xs-12 col-md-10">
+                                        <div id="course_format" class="center-align">
+                                            <div class="form-check form-control-label">
+                                                <input class="form-check-input" type="radio" name="format"
+                                                       id="task" value="task" checked>
+                                                <label for="task">
+                                                    Python Task
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-control-label">
+                                                <input class="form-check-input" type="radio" name="format"
+                                                       id="shad" value="shad">
+                                                <label for="shad">
+                                                    Курс ШАДа
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-control-label">
+                                                <input class="form-check-input" type="radio" name="format"
+                                                       id="other" value="other" checked>
+                                                <label for="other">
+                                                    Другое
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <small class="text-help"></small>
                                     </div>
                                 </div>
                                 <div class="form-group form-search row form-recipients">
@@ -65,6 +103,15 @@
                                         <input type="text" class="form-control typeahead" name="course_teachers"
                                                id="course_teachers" placeholder="начните вводить имя..." maxlength='25'>
                                         <small class="text-help"></small>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="form-control-label col-xs-12 col-md-2" for="course_description">
+                                        Описание
+                                    </label>
+                                    <div class="controls col-xs-12 col-md-10">
+                                        <textarea class="form-control" name="course_description"
+                                                  id="course_description"></textarea>
                                     </div>
                                 </div>
                                 <div class="form-group row">

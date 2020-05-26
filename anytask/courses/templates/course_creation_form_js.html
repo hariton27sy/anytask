@@ -11,6 +11,8 @@
 <script src="{{ STATIC_URL }}tinymce/tinymce.min.js"></script>
 <script src="{{ STATIC_URL }}tinymce/jquery.tinymce.min.js"></script>
 <script src="{{ STATIC_URL }}prism.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/js/bootstrap-select.min.js"></script>
+
 
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.12/css/dataTables.bootstrap4.min.css"/>
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/1.2.2/css/buttons.bootstrap4.min.css"/>
@@ -18,6 +20,8 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-tagsinput/0.8.0/bootstrap-tagsinput.css"/>
 <link href="{{ STATIC_URL }}prism.css" rel='stylesheet'/>
 <link href="{{ STATIC_URL }}tinymce-style-mail.css" rel='stylesheet'/>
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/css/bootstrap-select.min.css">
 
 <script type="text/javascript">
     $(document).ready(function () {
@@ -57,6 +61,16 @@
             }
         });
 
+        $.fn.selectpicker.defaults = {
+            iconBase: 'fontawesome',
+            tickIcon: 'fa fa-check',
+        };
+
+        $('.selectpicker').selectpicker({
+            style: 'form-control nowrap',
+            styleBase: 'form-control',
+        });
+
         var $course_teachers = $('#course_teachers');
 
         $course_teachers.tagsinput({
@@ -94,7 +108,7 @@
                                 '<tr><td style="padding-right: 10px;"><img class="avatar" src="{1}" style="width: 30px; height: 30px;"></td>' +
                                 '<td><div><strong>{2}</strong></div>{3}</td></tr>' +
                                 '<tr><td></td><td>{4}</td></tr>' +
-                                '<tr><td></td><td><strong>{% trans "loginy" %}</strong></td></tr>' +
+                                '<tr><td></td><td><strong>Логины</strong></td></tr>' +
                                 '<tr><td></td><td>{5}@ <small class="text-muted">Anytask</small></td></tr>' +
                                 '{6}' +
                                 '{7}' +
@@ -109,8 +123,8 @@
                             var status_counter = 0;
 
                             while (status_counter < data.statuses.length) {
-                                if (status_counter == MAX_STATUSES) {
-                                    status_html += '<span class="label label-status-sgs label-default ">{% trans 'yeshcho' %} ' + (data.statuses.length - MAX_STATUSES) + '</span>';
+                                if (status_counter === MAX_STATUSES) {
+                                    status_html += '<span class="label label-status-sgs label-default ">ещё' + (data.statuses.length - MAX_STATUSES) + '</span>';
                                     break;
                                 }
 
@@ -222,7 +236,10 @@
 
         var course_creation_form_validator = $('#course_creation_form').validate({
             submitHandler: function (form) {
-                $("body").prepend('<div id="blockDiv"><div><span class="fa fa-circle-o-notch fa-spin"></span>&nbsp;Отправка</div></div>');
+                $("body").prepend('<div id="blockDiv"><div>' +
+                    '<span class="fa fa-circle-o-notch fa-spin"></span>&nbsp;Отправка' +
+                    '</div></div>'
+                );
 
                 const status = document.createElement('div');
                 status.classList.add('alert');
@@ -239,9 +256,11 @@
                     'csrfmiddlewaretoken': "{{ csrf_token }}",
                     'school_name': $("#school_name").val(),
                     'course_name': $("#course_name").val(),
+                    'course_year': $("#course_year").val().split(' ')[0],
                     'course_description': $("#course_description").val(),
                     'course_teachers[]': $course_teachers.data('user'),
                     'comment': $("#comment").val(),
+                    'format': $( "input[name=format]:checked" ).val(),
                 }).done(function () {
                     status.classList.add('alert-success');
                     status_description.innerText = 'Ваша заявка принята';
@@ -261,8 +280,20 @@
             rules: {
                 course_teachers: {
                     required: true,
-                    maxlength: false
+                    maxlength: false,
                 },
+                school_name: {
+                    required: true,
+                },
+                course_name: {
+                    required: true,
+                },
+                course_year: {
+                    required: true,
+                },
+                format: {
+                    required: true,
+                }
             },
 
             highlight: function (input) {
@@ -276,7 +307,16 @@
 
             messages: {
                 course_teachers: {
-                    required: "укажите преподавателя"
+                    required: "укажите преподавателя",
+                },
+                course_name: {
+                    required: "укажите название",
+                },
+                school_name: {
+                    required: "укажите название",
+                },
+                format: {
+                    required: "выберите формат",
                 },
             },
 
