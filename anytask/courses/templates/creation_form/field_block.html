@@ -1,0 +1,9 @@
+<div class="form-group row">
+    <label class="form-control-label col-xs-12 col-md-12" for={{ id }}>{{ label }}</label>
+    <div class="controls col-xs-12 col-md-12">
+        {% if type == "textarea" %}
+            <textarea class="form-control" name={{ name }} id={{ id }}></textarea>
+        {% endif %}
+        <small class="text-help"></small>
+    </div>
+</div>

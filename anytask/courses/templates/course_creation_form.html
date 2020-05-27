@@ -18,7 +18,7 @@
 {% block content %}
     {{ block.super }}
     <div class="row">
-        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-9 col-xl-9">
+        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-10 col-xl-10">
             <div id="sending_status"></div>
             <div class="card">
                 <div class="card-block">
@@ -28,100 +28,16 @@
                         <div class="course-creation-form">
                             <form method="post" id="course_creation_form">
                                 {% csrf_token %}
-                                <div class="form-group row">
-                                    <label class="form-control-label col-xs-12 col-md-2" for="school_name">
-                                        Школа
-                                    </label>
-                                    <div class="controls col-xs-12 col-md-10">
-                                        <input type="text" class="form-control" name="school_name" id="school_name"
-                                               autocomplete="off" tabindex="2">
-                                        <small class="text-help"></small>
-                                    </div>
+                                {% include "creation_form/field_inline.html" with type="text" label="Школа" id="school_name" name="school_name" only %}
+                                {% include "creation_form/field_inline.html" with type="text" label="Название" id="course_name" name="course_name" only %}
+                                {% include "creation_form/field_inline.html" with type="select" label="Учебный год" id="course_year" name="course_year" items=years only %}
+                                {% include "creation_form/field_inline.html" with type="radios" label="Формат" id="format" name="format" items=formats only %}
+                                {% include "creation_form/field_inline.html" with type="select" label="Система оценки" id="mark_system" name="mark_system" items=mark_systems only %}
+                                <div class="form-search form-recipients">
+                                    {% include "creation_form/field_inline.html" with type="tagsinput" label="Преподаватели" id="course_teachers" name="course_teachers" only %}
                                 </div>
-                                <div class="form-group row">
-                                    <label class="form-control-label col-xs-12 col-md-2" for="course_name">
-                                        Название
-                                    </label>
-                                    <div class="controls col-xs-12 col-md-10">
-                                        <input type="text" class="form-control" name="course_name" id="course_name"
-                                               autocomplete="off" tabindex="2">
-                                        <small class="text-help"></small>
-                                    </div>
-                                </div>
-                                <div class="form-group row">
-                                    <label class="form-control-label col-xs-12 col-md-2" for="course_year">
-                                        Учебный год
-                                    </label>
-                                    <div class="controls col-xs-12 col-md-10">
-                                        <select class="selectpicker form-control show-tick"
-                                                id="course_year" name="course_year">
-                                            {% for year in years %}
-                                                <option class="dropdown-item">
-                                                    {{ year.value }} ({{ year.comment }})
-                                                </option>
-                                            {% endfor %}
-                                        </select>
-                                        <small class="text-help"></small>
-                                    </div>
-                                </div>
-                                <div class="form-group form-search row form-recipients">
-                                    <label class="col-xs-12 col-md-2 form-control-label " for="course_format">
-                                        Формат
-                                    </label>
-                                    <div class="controls col-xs-12 col-md-10">
-                                        <div id="course_format" class="center-align">
-                                            <div class="form-check form-control-label">
-                                                <input class="form-check-input" type="radio" name="format"
-                                                       id="task" value="task" checked>
-                                                <label for="task">
-                                                    Python Task
-                                                </label>
-                                            </div>
-                                            <div class="form-check form-control-label">
-                                                <input class="form-check-input" type="radio" name="format"
-                                                       id="shad" value="shad">
-                                                <label for="shad">
-                                                    Курс ШАДа
-                                                </label>
-                                            </div>
-                                            <div class="form-check form-control-label">
-                                                <input class="form-check-input" type="radio" name="format"
-                                                       id="other" value="other" checked>
-                                                <label for="other">
-                                                    Другое
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <small class="text-help"></small>
-                                    </div>
-                                </div>
-                                <div class="form-group form-search row form-recipients">
-                                    <label class="col-xs-12 col-md-2 form-control-label " for="course_teachers">
-                                        Преподаватели
-                                    </label>
-                                    <div class="controls col-xs-12 col-md-10">
-                                        <input type="text" class="form-control typeahead" name="course_teachers"
-                                               id="course_teachers" placeholder="начните вводить имя..." maxlength='25'>
-                                        <small class="text-help"></small>
-                                    </div>
-                                </div>
-                                <div class="form-group row">
-                                    <label class="form-control-label col-xs-12 col-md-2" for="course_description">
-                                        Описание
-                                    </label>
-                                    <div class="controls col-xs-12 col-md-10">
-                                        <textarea class="form-control" name="course_description"
-                                                  id="course_description"></textarea>
-                                    </div>
-                                </div>
-                                <div class="form-group row">
-                                    <label class="form-control-label col-xs-12 col-md-12" for="comment">
-                                        Комментарии к курсу
-                                    </label>
-                                    <div class="controls col-xs-12 col-md-12">
-                                        <textarea class="form-control" name="comment" id="comment"></textarea>
-                                    </div>
-                                </div>
+                                {% include "creation_form/field_inline.html" with type="textarea" label="Описание" id="course_description" name="course_description" only %}
+                                {% include "creation_form/field_block.html" with type="textarea" label="Комментарии к курсу" id="comment" name="comment" only %}
                                 <button type="button" class="btn btn-primary" id="btn_send_form">Отправить</button>
                             </form>
                         </div>

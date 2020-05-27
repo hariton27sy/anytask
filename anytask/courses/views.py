@@ -18,7 +18,7 @@ import logging
 import requests
 from reversion import revisions as reversion
 
-from courses.models import Course, DefaultTeacher, StudentCourseMark, MarkField, FilenameExtension
+from courses.models import Course, DefaultTeacher, StudentCourseMark, MarkField, FilenameExtension, CourseMarkSystem
 from groups.models import Group
 from tasks.models import Task, TaskGroupRelations
 from years.models import Year
@@ -1092,20 +1092,18 @@ def view_statistic(request, course_id):
 def creation_form(request):
     user = request.user
     current_year = get_or_create_current_year()
-    years = [
-        {
-            "value": current_year,
-            "comment": "текущий",
-        },
-        {
-            "value": Year.objects.get_or_create(start_year=current_year.start_year + 1)[0],
-            "comment": "новый",
-        }
-    ]
+    years = [(current_year, "текущий"),
+             (Year.objects.get_or_create(start_year=current_year.start_year + 1)[0], "новый")]
+    mark_systems = CourseMarkSystem.objects.all()
+    formats = [{"title": "Python Task", "id": "task"},
+               {"title": "Курс ШАДа", "id": "shad"},
+               {"title": "Другое", "id": "other"}]
 
     context = {
         "user": user,
-        "years": years,
+        "years": ["{} ({})".format(year, comment) for year, comment in years],
+        "mark_systems": [system['name'] for system in mark_systems.values()] + ["другое"],
+        "formats": formats,
     }
 
     return render(request, 'course_creation_form.html', context)

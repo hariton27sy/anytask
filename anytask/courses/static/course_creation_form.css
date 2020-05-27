@@ -144,6 +144,9 @@ blockquote.replay-quote:after {
 
 .dropdown-item:focus {
     outline: none;
+}
+
+.dropdown-item:focus:not(:hover) {
     background-color: #fff;
 }
 
@@ -164,19 +167,23 @@ input[name="format"] {
     width: 1.2rem;
     height: 1.2rem;
 }
+
 input[name="format"] + label {
     cursor: pointer;
     display: block;
     margin-bottom: 0;
 }
+
 input[name="format"]:not(checked) {
     position: absolute;
     opacity: 0;
 }
+
 input[name="format"]:not(checked) + label {
     position: relative;
     padding: 0 0 0 2rem;
 }
+
 input[name="format"]:not(checked) + label:before {
     content: '';
     position: absolute;
@@ -188,6 +195,7 @@ input[name="format"]:not(checked) + label:before {
     border-radius: 50%;
     background: #fff;
 }
+
 input[name="format"]:not(checked) + label:after {
     content: '';
     position: absolute;
@@ -200,6 +208,7 @@ input[name="format"]:not(checked) + label:after {
     opacity: 0;
     transition: all .2s;
 }
+
 input[name="format"]:checked + label:after {
     opacity: 1;
 }

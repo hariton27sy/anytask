@@ -256,11 +256,12 @@
                     'csrfmiddlewaretoken': "{{ csrf_token }}",
                     'school_name': $("#school_name").val(),
                     'course_name': $("#course_name").val(),
-                    'course_year': $("#course_year").val().split(' ')[0],
+                    'course_year': $("#course_year").val(),
                     'course_description': $("#course_description").val(),
                     'course_teachers[]': $course_teachers.data('user'),
                     'comment': $("#comment").val(),
                     'format': $( "input[name=format]:checked" ).val(),
+                    'mark_system': $( "#mark_system" ).val(),
                 }).done(function () {
                     status.classList.add('alert-success');
                     status_description.innerText = 'Ваша заявка принята';
