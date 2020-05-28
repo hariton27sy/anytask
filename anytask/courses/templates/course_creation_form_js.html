@@ -1,4 +1,6 @@
 {% load i18n %}
+{% load course_func %}
+
 <script src="{{ STATIC_URL }}jquery.validate.min.js"></script>
 <script src="https://malsup.github.io/jquery.form.js"></script>
 <script type="text/javascript" src="https://cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
@@ -24,6 +26,13 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/css/bootstrap-select.min.css">
 
 <script type="text/javascript">
+    user = {
+        id: {{ user.id | javascript }},
+        fullname: {{ user.get_full_name | javascript }},
+    }
+    const integrations = {{ integrations | javascript }};
+    const formats = {{ formats | javascript }};
+
     $(document).ready(function () {
         $(document).on('focusin', function (e) {
             if ($(e.target).closest(".mce-window").length) {
@@ -161,8 +170,12 @@
             }
             $course_teachers.data(e.item.type).push(e.item.id_post);
             course_creation_form_validator.element("#course_teachers");
+        }).on('beforeItemRemove', function (e) {
+            if (e.item.id_post === user.id) {
+                e.cancel = true;
+            }
         }).on('itemRemoved', function (e) {
-            var index = $.inArray(e.item.id_post, $course_teachers.data(e.item.type));
+            const index = $.inArray(e.item.id_post, $course_teachers.data(e.item.type));
 
             if (index !== -1) {
                 $course_teachers.data(e.item.type).splice(index, 1)
@@ -260,8 +273,8 @@
                     'course_description': $("#course_description").val(),
                     'course_teachers[]': $course_teachers.data('user'),
                     'comment': $("#comment").val(),
-                    'format': $( "input[name=format]:checked" ).val(),
-                    'mark_system': $( "#mark_system" ).val(),
+                    'format': $('input[name=format]').val(),
+                    'mark_system': $("#mark_system").val(),
                 }).done(function () {
                     status.classList.add('alert-success');
                     status_description.innerText = 'Ваша заявка принята';
@@ -285,16 +298,18 @@
                 },
                 school_name: {
                     required: true,
+                    maxlength: 191,
                 },
                 course_name: {
                     required: true,
+                    maxlength: 191,
                 },
                 course_year: {
                     required: true,
                 },
                 format: {
                     required: true,
-                }
+                },
             },
 
             highlight: function (input) {
@@ -312,9 +327,11 @@
                 },
                 course_name: {
                     required: "укажите название",
+                    maxlength: "слишком длинное название",
                 },
                 school_name: {
                     required: "укажите название",
+                    maxlength: "слишком длинное название",
                 },
                 format: {
                     required: "выберите формат",
@@ -336,8 +353,45 @@
             }
         });
 
-        $("#btn_send_form").click(function () {
+        const allSpecificFields = formats.map(format => format.specific_fields).filter(field => field).flat();
+        hideFields(allSpecificFields);
+        for (let format of formats) {
+            $('#' + format.id).on('click', function () {
+                hideFields(allSpecificFields);
+                unhideFields(format.specific_fields)
+            })
+        }
+
+        allSpecificFields.filter(id => id.includes('-and-')).forEach(id => {
+            $('#' + id).on('click', function () {
+                id.split('-and-').forEach(subId => {
+                    $('#' + subId).prop('checked', true)
+                })
+            })
+        })
+
+
+        $course_teachers.tagsinput('add', {
+            type: "user",
+            fullname: user.fullname,
+            id: 'u_' + user.id,
+            id_post: user.id
+        });
+
+        $("#btn_send_form").on('click', function () {
             $("#course_creation_form").submit();
         });
     });
+
+    function hideFields(fieldsIds = []) {
+        fieldsIds.forEach(id => {
+            $('#' + id).closest('.form-group').prop('hidden', true)
+        });
+    }
+
+    function unhideFields(fieldsIds = []) {
+        fieldsIds.forEach(id => {
+            $('#' + id).closest('.form-group').prop('hidden', false)
+        });
+    }
 </script>

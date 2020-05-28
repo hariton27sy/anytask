@@ -34,10 +34,13 @@
                                 {% include "creation_form/field_inline.html" with type="radios" label="Формат" id="format" name="format" items=formats only %}
                                 {% include "creation_form/field_inline.html" with type="select" label="Система оценки" id="mark_system" name="mark_system" items=mark_systems only %}
                                 <div class="form-search form-recipients">
-                                    {% include "creation_form/field_inline.html" with type="tagsinput" label="Преподаватели" id="course_teachers" name="course_teachers" only %}
+                                    {% include "creation_form/field_inline.html" with type="tagsinput" label="Преподаватели" id="course_teachers" name="course_teachers" placeholder="начните вводить имя..." only %}
                                 </div>
-                                {% include "creation_form/field_inline.html" with type="textarea" label="Описание" id="course_description" name="course_description" only %}
-                                {% include "creation_form/field_block.html" with type="textarea" label="Комментарии к курсу" id="comment" name="comment" only %}
+                                {# {% include "creation_form/field_inline.html" with type="textarea" label="Описание" id="course_description" name="course_description" only %}#}
+                                {% for integration in integrations %}
+                                    {% include "creation_form/field_block.html" with type="checkbox" id=integration.id name=integration.id item=integration only %}
+                                {% endfor %}
+                                {% include "creation_form/field_block.html" with type="textarea" label="Комментарии к курсу" id="comment" name="comment" placeholder="Сообщите, если у Вас есть другие пожелания :)" only %}
                                 <button type="button" class="btn btn-primary" id="btn_send_form">Отправить</button>
                             </form>
                         </div>

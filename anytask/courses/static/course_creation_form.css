@@ -160,55 +160,71 @@ blockquote.replay-quote:after {
 .form-check {
     position: relative;
     flex-grow: 1;
+    margin: .0625rem 0;
 }
 
-input[name="format"] {
-    vertical-align: top;
-    width: 1.2rem;
-    height: 1.2rem;
+.form-check label {
+    margin: 0;
 }
 
-input[name="format"] + label {
-    cursor: pointer;
-    display: block;
-    margin-bottom: 0;
+input[type="checkbox"],
+input[type="radio"] {
+    display: none;
 }
 
-input[name="format"]:not(checked) {
-    position: absolute;
-    opacity: 0;
-}
-
-input[name="format"]:not(checked) + label {
+input[type="checkbox"] + label,
+input[type="radio"] + label {
     position: relative;
-    padding: 0 0 0 2rem;
+    display: inline-block;
+    cursor: pointer;
+    padding-left: 2rem;
 }
 
-input[name="format"]:not(checked) + label:before {
-    content: '';
+input[type="checkbox"] + label::before,
+input[type="checkbox"] + label::after,
+input[type="radio"] + label::before,
+input[type="radio"] + label::after {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 1.2rem;
-    height: 1.2rem;
-    border: 1px solid #ccc;
-    border-radius: 50%;
-    background: #fff;
-}
-
-input[name="format"]:not(checked) + label:after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 1.2rem;
-    height: 1.2rem;
-    border-radius: 50%;
-    background: #0275d8;
-    opacity: 0;
+    content: "";
+    display: inline-block;
     transition: all .2s;
 }
 
-input[name="format"]:checked + label:after {
-    opacity: 1;
+input[type="checkbox"] + label::before,
+input[type="radio"] + label::before {
+    height: 1.2rem;
+    width: 1.2rem;
+    border-radius: 25%;
+    border: 1px solid #ccc;
+    background: #fff;
+    left: 0;
+}
+
+input[type="radio"] + label::before {
+    border-radius: 50%;
+}
+
+input[type="checkbox"] + label::after {
+    height: .45rem;
+    width: .8rem;
+    border-left: .25rem solid;
+    border-bottom: .25rem solid;
+    color: #fff;
+    transform: rotate(-45deg);
+
+    left: .2rem;
+    top: .25rem;
+}
+
+input[type="checkbox"] + label::after {
+    content: none;
+}
+
+input[type="checkbox"]:checked + label::after {
+    content: "";
+}
+
+input[type="checkbox"]:checked + label::before,
+input[type="radio"]:checked + label::before {
+    background: #0275d8;
 }

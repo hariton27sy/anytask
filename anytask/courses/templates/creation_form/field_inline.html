@@ -11,13 +11,18 @@
             </select>
         {% elif type == "tagsinput" %}
             <input type="text" class="form-control typeahead" name={{ name }} id={{ id }}
-                   placeholder="начните вводить имя..." maxlength='25'>
+                   placeholder="{{ placeholder }}" maxlength='25'>
         {% elif type == "radios" %}
-            <div id={{ id }} class="center-align">
+            <div class="center-align">
                 {% for item in items %}
                     <div class="form-check form-control-label">
-                        <input class="form-check-input" type="radio" name={{ name }} id={{ item.id }}
-                               value={{ item.id }}>
+                        {% if forloop.last %}
+                            <input class="form-check-input" type="radio" name={{ id }} id={{ item.id }}
+                                   value={{ item.id }} checked>
+                        {% else %}
+                            <input class="form-check-input" type="radio" name={{ id }} id={{ item.id }}
+                                   value={{ item.id }}>
+                        {% endif %}
                         <label for={{ item.id }}>{{ item.title }}</label>
                     </div>
                 {% endfor %}

@@ -1095,15 +1095,31 @@ def creation_form(request):
     years = [(current_year, "текущий"),
              (Year.objects.get_or_create(start_year=current_year.start_year + 1)[0], "новый")]
     mark_systems = CourseMarkSystem.objects.all()
-    formats = [{"title": "Python Task", "id": "task"},
-               {"title": "Курс ШАДа", "id": "shad"},
-               {"title": "Другое", "id": "other"}]
+    formats = [{
+        "title": "Python Task",
+        "id": "task",
+        "specific_fields": [],
+    }, {
+        "title": "Курс ШАДа",
+        "id": "shad",
+        "specific_fields": ["contest", "rb-and-contest"],
+    }, {
+        "title": "Другое",
+        "id": "other",
+    }]
+
+    integrations = [
+        {"title": "Интеграция с Review Board", "id": "rb"},
+        {"title": "Интеграция с Яндекс Контест", "id": "contest"},
+        {"title": "Совместная интеграция Review Board и Яндекс Контест", "id": "rb-and-contest"},
+    ]
 
     context = {
         "user": user,
         "years": ["{} ({})".format(year, comment) for year, comment in years],
         "mark_systems": [system['name'] for system in mark_systems.values()] + ["другое"],
         "formats": formats,
+        "integrations": integrations,
     }
 
     return render(request, 'course_creation_form.html', context)
