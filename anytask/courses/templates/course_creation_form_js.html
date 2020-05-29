@@ -345,19 +345,33 @@
             }
         });
 
-        const allSpecificElements = formats.map(format => format.specific_elements).filter(field => field).flat();
-        hideFields(allSpecificElements);
+        const displayDependencies = formats
+            .map(format => format.dependencies.display)
+            .filter(field => field)
+            .flat();
+        hideElements(displayDependencies);
         for (let format of formats) {
             $('#' + format.id).on('click', function () {
-                hideFields(allSpecificElements);
-                unhideFields(format.specific_elements)
+                hideElements(displayDependencies);
+                unhideElements(format.dependencies.display)
             })
         }
 
-        allSpecificElements.filter(id => id.includes('-and-')).forEach(id => {
-            $('#' + id).on('click', function () {
-                id.split('-and-').forEach(subId => {
-                    $('#' + subId).prop('checked', true)
+        const checkedDependencies = {{ check_dependencies | javascript }};
+
+        Object.entries(checkedDependencies).forEach(([id, values]) => {
+            $("#" + id).on("click", function () {
+                if ($(this).prop("checked")) {
+                    values.forEach(value => {
+                        $('#' + value).prop("checked", true);
+                    })
+                }
+            });
+            values.forEach(value => {
+                $("#" + value).on("click", function () {
+                    if ($("#" + id).prop("checked")) {
+                        $(this).prop("checked", true);
+                    }
                 })
             })
         })
@@ -374,13 +388,13 @@
         });
     });
 
-    function hideFields(fieldsIds = []) {
+    function hideElements(fieldsIds = []) {
         fieldsIds.forEach(id => {
             $('#' + id).closest('.form-group').prop('hidden', true)
         });
     }
 
-    function unhideFields(fieldsIds = []) {
+    function unhideElements(fieldsIds = []) {
         fieldsIds.forEach(id => {
             $('#' + id).closest('.form-group').prop('hidden', false)
         });

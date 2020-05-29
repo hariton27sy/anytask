@@ -1100,8 +1100,13 @@ class ValidationRule:
     def merge(validation_rules):
         union = {}
         for rule in validation_rules:
-            union.update(dict(rule))
+            union.update(dict(rule))  # Этого нет в 3 питоне!!
         return union
+
+
+class ElementDependencyTypes:
+    DISPLAY_TYPE = "display"
+    CHECKED_TYPE = "checked"
 
 
 class FormElement:
@@ -1112,14 +1117,16 @@ class FormElement:
         self.default = default
         self.reference = reference
         self.validation = ValidationRule.merge(validation_rules) if validation_rules else {}
-        self.specific_elements = []
+        self.dependencies = {}
+        for dependency_type in [ElementDependencyTypes.DISPLAY_TYPE, ElementDependencyTypes.CHECKED_TYPE]:
+            self.dependencies[dependency_type] = []
 
     def obj(self):
         return self.__dict__
 
-    def set_dependent_elements(self, elements):
+    def set_dependent_elements(self, dependency_type, elements):
         for element in elements:
-            self.specific_elements.append(element.id)
+            self.dependencies[dependency_type].append(element.id)
 
         return self
 
@@ -1147,6 +1154,7 @@ def creation_form(request):
             title="Совместная интеграция Review Board и Яндекс Контест"
         ),
     ]
+    integrations[2].set_dependent_elements(ElementDependencyTypes.CHECKED_TYPE, [integrations[0], integrations[1]])
 
     students_count = [
         FormElement(
@@ -1175,11 +1183,11 @@ def creation_form(request):
         FormElement(
             "task",
             title="Python Task"
-        ).set_dependent_elements([students_count[0], students_count[1]]),
+        ).set_dependent_elements(ElementDependencyTypes.DISPLAY_TYPE, [students_count[0], students_count[1]]),
         FormElement(
             "shad",
             title="Курс ШАДа"
-        ).set_dependent_elements([integrations[1], integrations[2]]),
+        ).set_dependent_elements(ElementDependencyTypes.DISPLAY_TYPE, [integrations[1], integrations[2]]),
         FormElement(
             "other",
             title="Другое"
@@ -1190,6 +1198,10 @@ def creation_form(request):
     for field in students_count + integrations:
         field_validation[field.id] = field.validation
 
+    check_dependencies = {}
+    for field in integrations:
+        check_dependencies[field.id] = field.dependencies[ElementDependencyTypes.CHECKED_TYPE]
+
     context = {
         "user": user,
         "years": ["{} ({})".format(year, comment) for year, comment in years],
@@ -1198,6 +1210,7 @@ def creation_form(request):
         "integrations": [integration.obj() for integration in integrations],
         "students_count": [count.obj() for count in students_count],
         "field_validation": field_validation,
+        "check_dependencies": check_dependencies,
     }
 
     return render(request, 'course_creation_form.html', context)
