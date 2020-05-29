@@ -9,12 +9,12 @@
     </label>
     <div class="controls col-xs-12 col-md-9">
         {% if type == "text" %}
-            <input type="text" class="form-control" name="{{ name }}" id="{{ id }}" value="{{ default }}"
+            <input type="text" class="form-control" name="{{ name }}" id="{{ id }}" placeholder="{{ placeholder }}"
                    autocomplete="off" tabindex="2">
         {% elif type == "select" %}
             <select class="selectpicker form-control show-tick" id="{{ id }}" name="{{ name }}">
                 {% for item in items %}
-                    <option class="dropdown-item">{{ item }}</option>
+                    <option class="dropdown-item" id="{{ item.id }}" name="{{ item.name }}">{{ item.title }}</option>
                 {% endfor %}
             </select>
         {% elif type == "tagsinput" %}

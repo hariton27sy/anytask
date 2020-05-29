@@ -1136,9 +1136,12 @@ class FormElement:
 def creation_form(request):
     user = request.user
     current_year = get_or_create_current_year()
-    years = [(current_year, "текущий"),
-             (Year.objects.get_or_create(start_year=current_year.start_year + 1)[0], "новый")]
-    mark_systems = CourseMarkSystem.objects.all()
+    years = [(current_year, "текущий", "current-year"),
+             (Year.objects.get_or_create(start_year=current_year.start_year + 1)[0], "новый", "new-year")]
+    years = [FormElement(id, title="{} ({})".format(year, comment)) for year, comment, id in years]
+
+    mark_systems = [system["name"] for system in CourseMarkSystem.objects.all().values()] + ["другое"]
+    mark_systems = [FormElement("", title=system) for system in mark_systems]
 
     integrations = [
         FormElement(
@@ -1204,8 +1207,8 @@ def creation_form(request):
 
     context = {
         "user": user,
-        "years": ["{} ({})".format(year, comment) for year, comment in years],
-        "mark_systems": [system['name'] for system in mark_systems.values()] + ["другое"],
+        "years": [year.obj() for year in years],
+        "mark_systems": [system.obj() for system in mark_systems],
         "formats": [form.obj() for form in formats],
         "integrations": [integration.obj() for integration in integrations],
         "students_count": [count.obj() for count in students_count],
@@ -1221,6 +1224,7 @@ def creation_form(request):
 def ajax_send_form(request):
     user = request.user
     data = dict(request.POST)
-    print data
+    for key in data:
+        print key, data[key]
 
     return HttpResponse("OK")

@@ -37,7 +37,7 @@
                                     {% include "creation_form/field_inline.html" with type="tagsinput" label="Преподаватели" id="course_teachers" name="course_teachers" placeholder="начните вводить имя..." only %}
                                 </div>
                                 {% for  field in students_count %}
-                                    {% include "creation_form/field_inline.html" with type="text" label=field.title id=field.id name=field.id reference=field.reference default=field.default only %}
+                                    {% include "creation_form/field_inline.html" with type="text" label=field.title id=field.id name=field.id reference=field.reference placeholder=field.default only %}
                                 {% endfor %}
                                 {% for integration in integrations %}
                                     {% include "creation_form/field_block.html" with type="checkbox" id=integration.id name=integration.id item=integration reference=integration.reference only %}

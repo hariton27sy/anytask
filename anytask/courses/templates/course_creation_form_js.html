@@ -35,8 +35,9 @@
         id: {{ user.id | javascript }},
         fullname: {{ user.get_full_name | javascript }},
     }
-    const integrations = {{ integrations | javascript }};
     const formats = {{ formats | javascript }};
+    const integrations = {{ integrations | javascript }};
+    const studentsCount = {{ students_count | javascript }};
     const required = {{ field_validation | javascript }};
 
     const additionalRules = {};
@@ -65,8 +66,8 @@
                 '</div>'
         });
 
-        var MAX_SEARCH_SGS = 6;
-        var users_bloodhound = new Bloodhound({
+        const MAX_SEARCH_SGS = 6;
+        const users_bloodhound = new Bloodhound({
             datumTokenizer: function (datum) {
                 return Bloodhound.tokenizers.whitespace(datum.fullname);
             },
@@ -92,7 +93,7 @@
             styleBase: 'form-control',
         });
 
-        var $course_teachers = $('#course_teachers');
+        const $course_teachers = $('#course_teachers');
 
         $course_teachers.tagsinput({
             maxTags: 25,
@@ -116,7 +117,7 @@
                     source: users_bloodhound.ttAdapter(),
                     templates: {
                         suggestion: function (data) {
-                            var table_html = '<div class="sgs-result-up" data-url="{0}"><table>' +
+                            const table_html = '<div class="sgs-result-up" data-url="{0}"><table>' +
                                 '<tr><td style="padding-right: 10px;"><img class="avatar" src="{1}" style="width: 30px; height: 30px;"></td>' +
                                 '<td><div><strong>{2}</strong></div>{3}</td></tr>' +
                                 '<tr><td></td><td>{4}</td></tr>' +
@@ -125,14 +126,14 @@
                                 '{6}' +
                                 '{7}' +
                                 '</table></div>';
-                            var email_html = '';
-                            var ya_contest_login_html = '';
-                            var ya_passport_email_html = '';
-                            var avatar = data.avatar;
-                            var status_html = '';
-                            var status_template = '<span class="label label-status-sgs" style="background-color: {0}">{1}</span>';
-                            var MAX_STATUSES = 2;
-                            var status_counter = 0;
+                            let email_html = '';
+                            let ya_contest_login_html = '';
+                            let ya_passport_email_html = '';
+                            let avatar = data.avatar;
+                            let status_html = '';
+                            const status_template = '<span class="label label-status-sgs" style="background-color: {0}">{1}</span>';
+                            const MAX_STATUSES = 2;
+                            let status_counter = 0;
 
                             while (status_counter < data.statuses.length) {
                                 if (status_counter === MAX_STATUSES) {
@@ -259,14 +260,20 @@
                     'school_name': $("#school_name").val(),
                     'course_name': $("#course_name").val(),
                     'course_year': $("#course_year").val(),
-                    'course_description': $("#course_description").val(),
-                    'course_teachers[]': $course_teachers.data('user'),
-                    'comment': $("#comment").val(),
-                    'format': $('input[name=format]').val(),
+                    'format': $('input[name=format]:checked').val(),
                     'mark_system': $("#mark_system").val(),
+                    'course_teachers[]': $course_teachers.data('user'),
+                    ...getIntegrationsValues(),
+                    ...getStudentsCountValues(),
+                    'course_description': $("#course_description").val(),
+                    'comment': $("#comment").val(),
                 }).done(function () {
                     status.classList.add('alert-success');
                     status_description.innerText = 'Ваша заявка принята';
+                    $('#course_creation_form').trigger("reset");
+                    hideElements(displayDependencies);
+                    $course_teachers.tagsinput('removeAll');
+                    addUserToTagsinput();
                 }).fail(function () {
                     status.classList.add('alert-danger');
                     status_description.innerText = 'Произошла ошибка при отправке';
@@ -333,7 +340,7 @@
             }
         });
 
-        $(".tt-input", ".bootstrap-tagsinput").on("keyup", function (e) {
+        $(".tt-input", ".bootstrap-tagsinput").on("keydown", function (e) {
             if (e.which === 9) {  // enter
                 e.preventDefault();
             }
@@ -376,12 +383,16 @@
             })
         })
 
-        $course_teachers.tagsinput('add', {
-            type: "user",
-            fullname: user.fullname,
-            id: 'u_' + user.id,
-            id_post: user.id
-        });
+        function addUserToTagsinput() {
+            $course_teachers.tagsinput('add', {
+                type: "user",
+                fullname: user.fullname,
+                id: 'u_' + user.id,
+                id_post: user.id
+            });
+        }
+
+        addUserToTagsinput();
 
         $("#btn_send_form").on('click', function () {
             $("#course_creation_form").submit();
@@ -398,5 +409,22 @@
         fieldsIds.forEach(id => {
             $('#' + id).closest('.form-group').prop('hidden', false)
         });
+    }
+
+    function getIntegrationsValues() {
+        const integrationsValues = {};
+        integrations.forEach(integration => {
+            integrationsValues[integration.id] = $("#" + integration.id).prop("checked");
+        })
+        return integrationsValues;
+    }
+
+    function getStudentsCountValues() {
+        const studentsCountValues = {};
+        studentsCount.forEach(count => {
+            studentsCountValues[count.id] = $("#" + count.id).val() || 0;
+        })
+
+        return studentsCountValues;
     }
 </script>
