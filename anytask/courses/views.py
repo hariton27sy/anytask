@@ -1087,6 +1087,43 @@ def view_statistic(request, course_id):
         return pythontask.python_stat(request, course)
 
 
+class ValidationRule:
+    def __init__(self, name, rule, message):
+        self.name = name
+        self.rule = rule
+        self.message = message
+
+    def __iter__(self):
+        yield self.name, {"rule": self.rule, "message": self.message}
+
+    @staticmethod
+    def merge(validation_rules):
+        union = {}
+        for rule in validation_rules:
+            union.update(dict(rule))
+        return union
+
+
+class FormElement:
+    def __init__(self, element_id, title='', default='', name=None, reference=None, validation_rules=None):
+        self.title = title
+        self.id = element_id
+        self.name = name or element_id
+        self.default = default
+        self.reference = reference
+        self.validation = ValidationRule.merge(validation_rules) if validation_rules else {}
+        self.specific_elements = []
+
+    def obj(self):
+        return self.__dict__
+
+    def set_dependent_elements(self, elements):
+        for element in elements:
+            self.specific_elements.append(element.id)
+
+        return self
+
+
 @require_http_methods(['GET'])
 @login_required
 def creation_form(request):
@@ -1095,31 +1132,72 @@ def creation_form(request):
     years = [(current_year, "текущий"),
              (Year.objects.get_or_create(start_year=current_year.start_year + 1)[0], "новый")]
     mark_systems = CourseMarkSystem.objects.all()
-    formats = [{
-        "title": "Python Task",
-        "id": "task",
-        "specific_fields": [],
-    }, {
-        "title": "Курс ШАДа",
-        "id": "shad",
-        "specific_fields": ["contest", "rb-and-contest"],
-    }, {
-        "title": "Другое",
-        "id": "other",
-    }]
 
     integrations = [
-        {"title": "Интеграция с Review Board", "id": "rb"},
-        {"title": "Интеграция с Яндекс Контест", "id": "contest"},
-        {"title": "Совместная интеграция Review Board и Яндекс Контест", "id": "rb-and-contest"},
+        FormElement(
+            "rb",
+            title="Интеграция с Review Board"
+        ),
+        FormElement(
+            "contest",
+            title="Интеграция с Яндекс Контест"
+        ),
+        FormElement(
+            "rb-and-contest",
+            title="Совместная интеграция Review Board и Яндекс Контест"
+        ),
     ]
+
+    students_count = [
+        FormElement(
+            "not-scored",
+            title="Неоцененные задачи",
+            reference="Максимальное количество неоценённых задач студента",
+            default='0',
+            validation_rules=[
+                ValidationRule("required", True, "введите значение"),
+                ValidationRule("digits", True, "это поле должно содержать число"),
+            ]
+        ),
+        FormElement(
+            "incomplete",
+            title="Незавершённые задачи",
+            reference="Максимальное количество задач с неполным баллом (включая неоценённые) для студента",
+            default="0",
+            validation_rules=[
+                ValidationRule("required", True, "введите значение"),
+                ValidationRule("digits", True, "это поле должно содержать число"),
+            ]
+        ),
+    ]
+
+    formats = [
+        FormElement(
+            "task",
+            title="Python Task"
+        ).set_dependent_elements([students_count[0], students_count[1]]),
+        FormElement(
+            "shad",
+            title="Курс ШАДа"
+        ).set_dependent_elements([integrations[1], integrations[2]]),
+        FormElement(
+            "other",
+            title="Другое"
+        ),
+    ]
+
+    field_validation = {}
+    for field in students_count + integrations:
+        field_validation[field.id] = field.validation
 
     context = {
         "user": user,
         "years": ["{} ({})".format(year, comment) for year, comment in years],
         "mark_systems": [system['name'] for system in mark_systems.values()] + ["другое"],
-        "formats": formats,
-        "integrations": integrations,
+        "formats": [form.obj() for form in formats],
+        "integrations": [integration.obj() for integration in integrations],
+        "students_count": [count.obj() for count in students_count],
+        "field_validation": field_validation,
     }
 
     return render(request, 'course_creation_form.html', context)

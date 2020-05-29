@@ -26,12 +26,29 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/css/bootstrap-select.min.css">
 
 <script type="text/javascript">
-    user = {
+    $.fn.selectpicker.defaults = {
+        iconBase: 'fontawesome',
+        tickIcon: 'fa fa-check',
+    };
+
+    const user = {
         id: {{ user.id | javascript }},
         fullname: {{ user.get_full_name | javascript }},
     }
     const integrations = {{ integrations | javascript }};
     const formats = {{ formats | javascript }};
+    const required = {{ field_validation | javascript }};
+
+    const additionalRules = {};
+    const additionalMessages = {};
+    for (let [id, rules] of Object.entries(required)) {
+        additionalRules[id] = {};
+        additionalMessages[id] = {};
+        for (let [rule, value] of Object.entries(rules)) {
+            additionalRules[id][rule] = value.rule;
+            additionalMessages[id][rule] = value.message;
+        }
+    }
 
     $(document).ready(function () {
         $(document).on('focusin', function (e) {
@@ -70,11 +87,6 @@
             }
         });
 
-        $.fn.selectpicker.defaults = {
-            iconBase: 'fontawesome',
-            tickIcon: 'fa fa-check',
-        };
-
         $('.selectpicker').selectpicker({
             style: 'form-control nowrap',
             styleBase: 'form-control',
@@ -88,17 +100,8 @@
             itemText: 'fullname',
             focusClass: 'focus',
             tagClass: function (item) {
-                switch (item.type) {
-                    case 'user'   :
-                        return 'label label-success';
-                    case 'group'  :
-                        return 'label label-info';
-                    case 'course':
-                        return 'label label-primary';
-                    case 'status':
-                        return 'label label-warning';
-                    case 'preinit':
-                        return 'label label-default';
+                if (item.type === 'user') {
+                    return 'label label-success';
                 }
             },
             typeaheadjs: [
@@ -157,18 +160,17 @@
         });
 
         $('.tt-menu').on("mouseleave", function () {
-                $(this).find('.tt-cursor').removeClass('tt-cursor');
-            }
-        ).on("mouseenter", 'div.search-show-more', function () {
-                $(this).closest('.tt-menu').find('.tt-cursor').removeClass('tt-cursor');
-            }
-        );
+            $(this).find('.tt-cursor').removeClass('tt-cursor');
+        }).on("mouseenter", 'div.search-show-more', function () {
+            $(this).closest('.tt-menu').find('.tt-cursor').removeClass('tt-cursor');
+        });
 
         $course_teachers.on('itemAdded', function (e) {
             if ($course_teachers.data(e.item.type) === undefined) {
                 $course_teachers.data(e.item.type, []);
             }
             $course_teachers.data(e.item.type).push(e.item.id_post);
+
             course_creation_form_validator.element("#course_teachers");
         }).on('beforeItemRemove', function (e) {
             if (e.item.id_post === user.id) {
@@ -176,7 +178,6 @@
             }
         }).on('itemRemoved', function (e) {
             const index = $.inArray(e.item.id_post, $course_teachers.data(e.item.type));
-
             if (index !== -1) {
                 $course_teachers.data(e.item.type).splice(index, 1)
             }
@@ -233,18 +234,6 @@
             paste_remove_styles_if_webkit: true,
             paste_strip_class_attributes: true,
             nonbreaking_force_tab: true,
-            variables: [
-                {
-                    title: '{% trans "familiya" %}',
-                    description: '{% trans "familiya_poluchatelya" %}',
-                    content: '\{\{ last_name \}\}'
-                },
-                {
-                    title: '{% trans "imja" %}',
-                    description: '{% trans "imja_poluchatelya" %}',
-                    content: '\{\{ first_name \}\}'
-                },
-            ],
         });
 
         var course_creation_form_validator = $('#course_creation_form').validate({
@@ -310,17 +299,8 @@
                 format: {
                     required: true,
                 },
+                ...additionalRules,
             },
-
-            highlight: function (input) {
-                $(input).closest('.form-group').removeClass('has-success').addClass('has-danger');
-            },
-
-            success: function (label) {
-                label.addClass('valid');
-                label.closest('.form-group').removeClass('has-danger');
-            },
-
             messages: {
                 course_teachers: {
                     required: "укажите преподавателя",
@@ -333,43 +313,54 @@
                     required: "укажите название",
                     maxlength: "слишком длинное название",
                 },
+                course_year: {
+                    required: "укажите год",
+                },
                 format: {
                     required: "выберите формат",
                 },
+                ...additionalMessages,
             },
-
+            highlight: function (input) {
+                $(input).closest('.form-group').removeClass('has-success').addClass('has-danger');
+            },
+            success: function (label) {
+                label.addClass('valid');
+                label.closest('.form-group').removeClass('has-danger');
+            },
             errorPlacement: function (error, element) {
                 $(element).closest("div.controls").find('small.text-help').empty().append(error);
             }
         });
 
-        $(".tt-input", ".bootstrap-tagsinput").keydown(function (e) {
-            if (e.which === 9) {
+        $(".tt-input", ".bootstrap-tagsinput").on("keyup", function (e) {
+            if (e.which === 9) {  // enter
                 e.preventDefault();
-                course_creation_form_validator.element("#course_teachers");
-            }
-            if (e.which === 13) {
-                course_creation_form_validator.element("#course_teachers");
             }
         });
 
-        const allSpecificFields = formats.map(format => format.specific_fields).filter(field => field).flat();
-        hideFields(allSpecificFields);
+        $("input[type=text]:not(#course_teachers)", "#course_creation_form").on("keyup", function (event) {
+            if (event.target.id) {
+                course_creation_form_validator.element('#' + event.target.id)
+            }
+        });
+
+        const allSpecificElements = formats.map(format => format.specific_elements).filter(field => field).flat();
+        hideFields(allSpecificElements);
         for (let format of formats) {
             $('#' + format.id).on('click', function () {
-                hideFields(allSpecificFields);
-                unhideFields(format.specific_fields)
+                hideFields(allSpecificElements);
+                unhideFields(format.specific_elements)
             })
         }
 
-        allSpecificFields.filter(id => id.includes('-and-')).forEach(id => {
+        allSpecificElements.filter(id => id.includes('-and-')).forEach(id => {
             $('#' + id).on('click', function () {
                 id.split('-and-').forEach(subId => {
                     $('#' + subId).prop('checked', true)
                 })
             })
         })
-
 
         $course_teachers.tagsinput('add', {
             type: "user",

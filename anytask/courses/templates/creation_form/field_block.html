@@ -1,6 +1,13 @@
 <div class="form-group row">
     {% if label %}
-        <label class="form-control-label col-xs-12 col-md-12" for={{ id }}>{{ label }}</label>
+        <label class="form-control-label col-xs-12 col-md-12" for={{ id }}>
+            {{ label }}
+            {% if reference %}
+                <a tabindex="0" data-toggle="popover" data-trigger="hover" type="button" data-content="{{ reference }}">
+                    <i class="fa fa-question-circle help-button" aria-hidden="true"></i>
+                </a>
+            {% endif %}
+        </label>
     {% endif %}
     <div class="controls col-xs-12 col-md-12">
         {% if type == "textarea" %}
