@@ -31,6 +31,13 @@
         tickIcon: 'fa fa-check',
     };
 
+    let recaptchaWidget;
+    var recaptchaOnload = function () {
+        recaptchaWidget = grecaptcha.render('recaptcha', {
+            'sitekey': "{{ RECAPTCHA_PUBLIC_KEY }}",
+        });
+    };
+
     const user = {
         id: {{ user.id | javascript }},
         fullname: {{ user.get_full_name | javascript }},
@@ -267,6 +274,7 @@
                     ...getStudentsCountValues(),
                     'course_description': $("#course_description").val(),
                     'comment': $("#comment").val(),
+                    'g-recaptcha-response': $("#g-recaptcha-response").val(),
                 }).done(function () {
                     status.classList.add('alert-success');
                     status_description.innerText = 'Ваша заявка принята';
@@ -276,16 +284,17 @@
                     addUserToTagsinput();
                 }).fail(function () {
                     status.classList.add('alert-danger');
-                    status_description.innerText = 'Произошла ошибка при отправке';
+                    status_description.innerText = 'Произошла ошибка при отправке. Попробуйте ещё раз';
                 }).always(function () {
                     $("#blockDiv", "body").remove();
+                    grecaptcha.reset(recaptchaWidget);
                     $("#sending_status").append(status);
                     $('html, body').animate({
                         scrollTop: $('html').offset().top
                     }, 500);
                 });
             },
-            ignore: ':hidden:not("#course_teachers")',
+            ignore: ':hidden:not("#course_teachers"):not("#g-recaptcha-response")',
             onfocusout: false,
             rules: {
                 course_teachers: {
@@ -307,6 +316,9 @@
                     required: true,
                 },
                 ...additionalRules,
+                'g-recaptcha-response': {
+                    required: true,
+                },
             },
             messages: {
                 course_teachers: {
@@ -327,6 +339,9 @@
                     required: "выберите формат",
                 },
                 ...additionalMessages,
+                'g-recaptcha-response': {
+                    required: "установите флажок и повторите попытку",
+                },
             },
             highlight: function (input) {
                 $(input).closest('.form-group').removeClass('has-success').addClass('has-danger');
@@ -337,7 +352,7 @@
             },
             errorPlacement: function (error, element) {
                 $(element).closest("div.controls").find('small.text-help').empty().append(error);
-            }
+            },
         });
 
         $(".tt-input", ".bootstrap-tagsinput").on("keydown", function (e) {

@@ -44,8 +44,17 @@
                                 {% endfor %}
                                 {% include "creation_form/field_block.html" with type="textarea" label="Описание" id="course_description" name="course_description" only %}
                                 {% include "creation_form/field_block.html" with type="textarea" label="Комментарии к курсу" id="comment" name="comment" placeholder="Сообщите, если у Вас есть другие пожелания :)" only %}
+                                <div class="form-group row">
+                                    <div class="controls col-xs-12 col-md-12">
+                                        <div id="recaptcha"></div>
+                                        <small class="text-help"></small>
+                                    </div>
+                                </div>
                                 <button type="button" class="btn btn-primary" id="btn_send_form">Отправить</button>
                             </form>
+                            <script src="https://www.google.com/recaptcha/api.js?onload=recaptchaOnload&render=explicit"
+                                    async defer>
+                            </script>
                         </div>
                     </div>
                 </div>

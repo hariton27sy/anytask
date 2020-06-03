@@ -3,7 +3,7 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import Http404, QueryDict
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseForbidden
 from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
@@ -1214,17 +1214,43 @@ def creation_form(request):
         "students_count": [count.obj() for count in students_count],
         "field_validation": field_validation,
         "check_dependencies": check_dependencies,
+        "RECAPTCHA_PUBLIC_KEY": settings.RECAPTCHA_PUBLIC_KEY,
     }
 
     return render(request, 'course_creation_form.html', context)
 
 
+def check_recaptcha(function):
+    def wrap(request, *args, **kwargs):
+        request.recaptcha_is_valid = None
+        if request.method == 'POST':
+            recaptcha_response = request.POST.get('g-recaptcha-response')
+            data = {
+                'secret': settings.RECAPTCHA_PRIVATE_KEY,
+                'response': recaptcha_response,
+            }
+            result = requests.post('https://www.google.com/recaptcha/api/siteverify', data=data).json()
+            if result['success']:
+                request.recaptcha_is_valid = True
+            else:
+                request.recaptcha_is_valid = False
+        return function(request, *args, **kwargs)
+
+    wrap.__doc__ = function.__doc__
+    wrap.__name__ = function.__name__
+    return wrap
+
+
 @require_http_methods(['POST'])
 @login_required
+@check_recaptcha
 def ajax_send_form(request):
     user = request.user
     data = dict(request.POST)
     for key in data:
         print key, data[key]
+
+    if not request.recaptcha_is_valid:
+        return HttpResponseForbidden("Recaptcha is invalid")
 
     return HttpResponse("OK")
