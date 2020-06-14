@@ -2512,3 +2512,11 @@ msgstr "Чтобы отвязать свой профиль, обратитес�
 
 #~ msgid "nabludatelem"
 #~ msgstr "наблюдателем"
+
+#: courses/templates/courses/course.html:124
+msgid "wiki"
+msgstr "Вики"
+
+#: courses/templates/courses/course.html:628
+msgid "dobavit_article"
+msgstr "Добавить статью"

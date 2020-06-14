@@ -265,6 +265,7 @@ def course_page(request, course_id):
     context['school'] = schools[0] if schools else ''
     context['visible_attendance_log'] = course.user_can_see_attendance_log(request.user)
     context['jupyterhub_url'] = getattr(settings, 'JUPYTERHUB_URL', '')
+    context['wiki_articles'] = course.wiki.article_set.all() if course.wiki else None
 
     return render(request, 'courses/course.html', context)
 
@@ -470,8 +471,7 @@ def tasklist_shad_cpp(request, course, seminar=None, group=None):
         'visible_hide_button': Task.objects.filter(Q(course=course) & Q(is_hidden=True)).exists(),
         'show_hidden_tasks': show_hidden_tasks,
         'visible_hide_button_users': len(academ_students),
-        'show_academ_users': show_academ_users
-
+        'show_academ_users': show_academ_users,
     }
 
     return context

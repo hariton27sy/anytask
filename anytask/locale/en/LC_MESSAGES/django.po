@@ -1771,3 +1771,11 @@ msgstr ""
 #: users/templates/user_settings.html:193
 msgid "title_otvjazat_svoj_profil"
 msgstr ""
+
+#: courses/templates/courses/course.html:124
+msgid "wiki"
+msgstr ""
+
+#: courses/templates/courses/course.html:628
+msgid "dobavit_article"
+msgstr ""
