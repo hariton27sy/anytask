@@ -1,0 +1,43 @@
+<div class="form-group row">
+    <label class="form-control-label col-xs-12 col-md-3">
+        {{ label }}
+        {% if reference %}
+            <a tabindex="0" data-toggle="popover" data-trigger="hover" type="button" data-content="{{ reference }}">
+                <i class="fa fa-question-circle help-button" aria-hidden="true"></i>
+            </a>
+        {% endif %}
+    </label>
+    <div class="controls col-xs-12 col-md-9">
+        {% if type == "text" %}
+            <input type="text" class="form-control" name="{{ name }}" id="{{ id }}" placeholder="{{ placeholder }}"
+                   autocomplete="off" tabindex="2">
+        {% elif type == "select" %}
+            <select class="selectpicker form-control show-tick" id="{{ id }}" name="{{ name }}">
+                {% for item in items %}
+                    <option class="dropdown-item" id="{{ item.id }}" name="{{ item.name }}">{{ item.title }}</option>
+                {% endfor %}
+            </select>
+        {% elif type == "tagsinput" %}
+            <input type="text" class="form-control typeahead" name={{ name }} id={{ id }}
+                   placeholder="{{ placeholder }}" maxlength='25'>
+        {% elif type == "radios" %}
+            <div class="center-align">
+                {% for item in items %}
+                    <div class="form-check form-control-label">
+                        {% if forloop.last %}
+                            <input class="form-check-input" type="radio" name={{ id }} id={{ item.id }}
+                                   value={{ item.id }} checked>
+                        {% else %}
+                            <input class="form-check-input" type="radio" name={{ id }} id={{ item.id }}
+                                   value={{ item.id }}>
+                        {% endif %}
+                        <label for={{ item.id }}>{{ item.title }}</label>
+                    </div>
+                {% endfor %}
+            </div>
+        {% elif type == "textarea" %}
+            <textarea class="form-control" name={{ name }} id={{ id }}></textarea>
+        {% endif %}
+        <small class="text-help"></small>
+    </div>
+</div>

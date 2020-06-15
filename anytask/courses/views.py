@@ -3,7 +3,7 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import Http404, QueryDict
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseForbidden
 from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
@@ -18,11 +18,11 @@ import logging
 import requests
 from reversion import revisions as reversion
 
-from courses.models import Course, DefaultTeacher, StudentCourseMark, MarkField, FilenameExtension
+from courses.models import Course, DefaultTeacher, StudentCourseMark, MarkField, FilenameExtension, CourseMarkSystem
 from groups.models import Group
 from tasks.models import Task, TaskGroupRelations
 from years.models import Year
-from years.common import get_current_year
+from years.common import get_current_year, get_or_create_current_year
 from anycontest.common import get_contest_info, FakeResponse
 from issues.models import Issue
 from issues.issueFilter import IssueFilter
@@ -1085,3 +1085,238 @@ def view_statistic(request, course_id):
 
     if course.is_python_task:
         return pythontask.python_stat(request, course)
+
+
+class ValidationRule:
+    def __init__(self, name, rule, message):
+        self.name = name
+        self.rule = rule
+        self.message = message
+
+    def __iter__(self):
+        yield self.name, {"rule": self.rule, "message": self.message}
+
+    @staticmethod
+    def merge(validation_rules):
+        union = {}
+        for rule in validation_rules:
+            union.update(dict(rule))  # Этого нет в 3 питоне!!
+        return union
+
+
+class ElementDependencyTypes:
+    DISPLAY_TYPE = "display"
+    CHECKED_TYPE = "checked"
+
+
+class FormElement:
+    def __init__(self, element_id, title='', default='', name=None, reference=None, validation_rules=None):
+        self.title = title
+        self.id = element_id
+        self.name = name or element_id
+        self.default = default
+        self.reference = reference
+        self.validation = ValidationRule.merge(validation_rules) if validation_rules else {}
+        self.dependencies = {}
+        for dependency_type in [ElementDependencyTypes.DISPLAY_TYPE, ElementDependencyTypes.CHECKED_TYPE]:
+            self.dependencies[dependency_type] = []
+
+    def obj(self):
+        return self.__dict__
+
+    def set_dependent_elements(self, dependency_type, elements):
+        for element in elements:
+            self.dependencies[dependency_type].append(element.id)
+
+        return self
+
+
+@require_http_methods(['GET'])
+@login_required
+def creation_form(request):
+    user = request.user
+    current_year = get_or_create_current_year()
+    years = [(current_year, "текущий", "current-year"),
+             (Year.objects.get_or_create(start_year=current_year.start_year + 1)[0], "новый", "new-year")]
+    years = [FormElement(id, title="{} ({})".format(year, comment)) for year, comment, id in years]
+
+    mark_systems = [system["name"] for system in CourseMarkSystem.objects.all().values()] + ["другое"]
+    mark_systems = [FormElement("", title=system) for system in mark_systems]
+
+    integrations = [
+        FormElement(
+            "rb",
+            title="Интеграция с Review Board"
+        ),
+        FormElement(
+            "contest",
+            title="Интеграция с Яндекс Контест"
+        ),
+        FormElement(
+            "rb-and-contest",
+            title="Совместная интеграция Review Board и Яндекс Контест"
+        ),
+    ]
+    integrations[2].set_dependent_elements(ElementDependencyTypes.CHECKED_TYPE, [integrations[0], integrations[1]])
+
+    students_count = [
+        FormElement(
+            "not-scored",
+            title="Неоцененные задачи",
+            reference="Максимальное количество неоценённых задач студента",
+            default='0',
+            validation_rules=[
+                ValidationRule("required", True, "введите значение"),
+                ValidationRule("digits", True, "это поле должно содержать число"),
+            ]
+        ),
+        FormElement(
+            "incomplete",
+            title="Незавершённые задачи",
+            reference="Максимальное количество задач с неполным баллом (включая неоценённые) для студента",
+            default="0",
+            validation_rules=[
+                ValidationRule("required", True, "введите значение"),
+                ValidationRule("digits", True, "это поле должно содержать число"),
+            ]
+        ),
+    ]
+
+    formats = [
+        FormElement(
+            "task",
+            title="Python Task"
+        ).set_dependent_elements(ElementDependencyTypes.DISPLAY_TYPE, [students_count[0], students_count[1]]),
+        FormElement(
+            "shad",
+            title="Курс ШАДа"
+        ).set_dependent_elements(ElementDependencyTypes.DISPLAY_TYPE, [integrations[1], integrations[2]]),
+        FormElement(
+            "other",
+            title="Другое"
+        ),
+    ]
+
+    field_validation = {}
+    for field in students_count + integrations:
+        field_validation[field.id] = field.validation
+
+    check_dependencies = {}
+    for field in integrations:
+        check_dependencies[field.id] = field.dependencies[ElementDependencyTypes.CHECKED_TYPE]
+
+    context = {
+        "user": user,
+        "years": [year.obj() for year in years],
+        "mark_systems": [system.obj() for system in mark_systems],
+        "formats": [form.obj() for form in formats],
+        "integrations": [integration.obj() for integration in integrations],
+        "students_count": [count.obj() for count in students_count],
+        "field_validation": field_validation,
+        "check_dependencies": check_dependencies,
+        "RECAPTCHA_PUBLIC_KEY": settings.RECAPTCHA_PUBLIC_KEY,
+    }
+
+    return render(request, 'course_creation_form.html', context)
+
+
+def check_recaptcha(function):
+    def wrap(request, *args, **kwargs):
+        request.recaptcha_is_valid = None
+        if request.method == 'POST':
+            recaptcha_response = request.POST.get('g-recaptcha-response')
+            data = {
+                'secret': settings.RECAPTCHA_PRIVATE_KEY,
+                'response': recaptcha_response,
+            }
+            result = requests.post('https://www.google.com/recaptcha/api/siteverify', data=data).json()
+            if result['success']:
+                request.recaptcha_is_valid = True
+            else:
+                request.recaptcha_is_valid = False
+        return function(request, *args, **kwargs)
+
+    wrap.__doc__ = function.__doc__
+    wrap.__name__ = function.__name__
+    return wrap
+
+
+@require_http_methods(['POST'])
+@login_required
+@check_recaptcha
+def ajax_send_form(request):
+    if not request.recaptcha_is_valid:
+        return HttpResponseForbidden("Recaptcha is invalid")
+
+    user = request.user
+
+    school_name = request.POST.get("school_name")  # TODO: высылать в сообщении
+    course_name = request.POST.get("course_name")
+    course_year = request.POST.get("course_year", "").split(" ")[0].split("-")[0]
+    course_format = request.POST.get("course_format", "other")
+    mark_system = request.POST.get("mark_system", None)
+    course_teachers = request.POST.getlist("course_teachers[]", [user.id])
+    students_count = {
+        "not-scored": json.loads(request.POST.get("not-scored", "0")),
+        "incomplete": json.loads(request.POST.get("incomplete", "0")),
+    }
+    integrations = {
+        "rb": json.loads(request.POST.get("rb", "false")),
+        "contest": json.loads(request.POST.get("contest", "false")),
+        "rb-and-contest": json.loads(request.POST.get("rb-and-contest", "false")),
+    }
+    course_description = request.POST.get("course_description", "")
+    comment = request.POST.get("comment", "")  # TODO: высылать в сообщении
+
+    # print {
+    #     'school_name': school_name,
+    #     'course_name': course_name,
+    #     'course_year': course_year,
+    #     'course_format': course_format,
+    #     'mark_system': mark_system,
+    #     'course_teachers': course_teachers,
+    #     'students_count': students_count,
+    #     'integrations': integrations,
+    #     'course_description': course_description,
+    #     'comment': comment,
+    # }
+
+    if not (school_name and course_name and course_year):
+        raise PermissionDenied
+
+    course = Course()
+    course.name = course_name
+    course.information = course_description
+    try:
+        course.year = Year.objects.get(start_year=course_year)
+    except Year.DoesNotExist:
+        course.year = get_current_year()
+    course.is_active = True
+    course.save()
+    for teacher_id in course_teachers:
+        try:
+            course.teachers.add(User.objects.get(id=teacher_id))
+        except User.DoesNotExist:
+            raise PermissionDenied
+
+    course.rb_integrated = integrations["rb"]
+    if course_format == "shad":
+        course.contest_integrated = integrations["contest"]
+        course.send_rb_and_contest_together = integrations["rb-and-contest"]
+
+    course.private = True
+
+    try:
+        course.mark_system = CourseMarkSystem.objects.get(name=mark_system)
+    except CourseMarkSystem.DoesNotExist:
+        pass
+
+    if course_format == "task":
+        course.is_python_task = True
+        course.max_incomplete_tasks = students_count["incomplete"]
+        course.max_not_scored_tasks = students_count["not-scored"]
+
+    course.unready = True
+    course.save()
+
+    return HttpResponse("OK")

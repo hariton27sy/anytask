@@ -42,4 +42,6 @@ urlpatterns = [
     url(r'^lesson_delete$', courses.views.lesson_delete, name="courses.views.lesson_delete"),
     url(r'^(?P<course_id>\d+)/statistic$', courses.views.view_statistic, name="courses.views.view_statistic"),
     url(r'^ajax_get_queue$', courses.views.ajax_get_queue, name="courses.views.ajax_get_queue"),
+    url(r'^add/$', courses.views.creation_form, name="courses.views.creation_form"),
+    url(r'^ajax_send_form$', courses.views.ajax_send_form, name="courses.views.ajax_send_form"),
 ]

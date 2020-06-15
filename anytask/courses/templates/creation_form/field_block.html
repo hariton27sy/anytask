@@ -1,0 +1,24 @@
+<div class="form-group row">
+    {% if label %}
+        <label class="form-control-label col-xs-12 col-md-12" for={{ id }}>
+            {{ label }}
+            {% if reference %}
+                <a tabindex="0" data-toggle="popover" data-trigger="hover" type="button" data-content="{{ reference }}">
+                    <i class="fa fa-question-circle help-button" aria-hidden="true"></i>
+                </a>
+            {% endif %}
+        </label>
+    {% endif %}
+    <div class="controls col-xs-12 col-md-12">
+        {% if type == "textarea" %}
+            <textarea class="form-control" name={{ name }} id={{ id }} placeholder="{{ placeholder }}"></textarea>
+        {% elif type == "checkbox" %}
+            <div class="form-check form-control-label">
+                <input class="form-check-input" type="checkbox" name={{ name }} id={{ item.id }}
+                       value={{ item.id }}>
+                <label for={{ item.id }}>{{ item.title }}</label>
+            </div>
+        {% endif %}
+        <small class="text-help"></small>
+    </div>
+</div>

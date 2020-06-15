@@ -1,0 +1,445 @@
+{% load i18n %}
+{% load course_func %}
+
+<script src="{{ STATIC_URL }}jquery.validate.min.js"></script>
+<script src="https://malsup.github.io/jquery.form.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/1.10.12/js/dataTables.bootstrap4.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/1.2.2/js/dataTables.buttons.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/1.2.2/js/buttons.html5.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/1.2.2/js/buttons.bootstrap4.min.js"></script>
+<script type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-tagsinput/0.8.0/bootstrap-tagsinput.min.js"></script>
+<script src="{{ STATIC_URL }}tinymce/tinymce.min.js"></script>
+<script src="{{ STATIC_URL }}tinymce/jquery.tinymce.min.js"></script>
+<script src="{{ STATIC_URL }}prism.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/js/bootstrap-select.min.js"></script>
+
+
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.12/css/dataTables.bootstrap4.min.css"/>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/1.2.2/css/buttons.bootstrap4.min.css"/>
+<link rel="stylesheet" type="text/css"
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-tagsinput/0.8.0/bootstrap-tagsinput.css"/>
+<link href="{{ STATIC_URL }}prism.css" rel='stylesheet'/>
+<link href="{{ STATIC_URL }}tinymce-style-mail.css" rel='stylesheet'/>
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/css/bootstrap-select.min.css">
+
+<script type="text/javascript">
+    $.fn.selectpicker.defaults = {
+        iconBase: 'fontawesome',
+        tickIcon: 'fa fa-check',
+    };
+
+    let recaptchaWidget;
+    var recaptchaOnload = function () {
+        recaptchaWidget = grecaptcha.render('recaptcha', {
+            'sitekey': "{{ RECAPTCHA_PUBLIC_KEY }}",
+        });
+    };
+
+    const user = {
+        id: {{ user.id | javascript }},
+        fullname: {{ user.get_full_name | javascript }},
+    }
+    const formats = {{ formats | javascript }};
+    const integrations = {{ integrations | javascript }};
+    const studentsCount = {{ students_count | javascript }};
+    const required = {{ field_validation | javascript }};
+
+    const additionalRules = {};
+    const additionalMessages = {};
+    for (let [id, rules] of Object.entries(required)) {
+        additionalRules[id] = {};
+        additionalMessages[id] = {};
+        for (let [rule, value] of Object.entries(rules)) {
+            additionalRules[id][rule] = value.rule;
+            additionalMessages[id][rule] = value.message;
+        }
+    }
+
+    $(document).ready(function () {
+        $(document).on('focusin', function (e) {
+            if ($(e.target).closest(".mce-window").length) {
+                e.stopImmediatePropagation();
+            }
+        });
+
+        $('[data-toggle="popover"]').popover({
+            trigger: 'hover',
+            template: '<div class="popover" role="tooltip">' +
+                '<div class="popover-arrow"></div>' +
+                '<div class="popover-content"></div>' +
+                '</div>'
+        });
+
+        const MAX_SEARCH_SGS = 6;
+        const users_bloodhound = new Bloodhound({
+            datumTokenizer: function (datum) {
+                return Bloodhound.tokenizers.whitespace(datum.fullname);
+            },
+            queryTokenizer: Bloodhound.tokenizers.whitespace,
+            remote: {
+                wildcard: '%QUERY',
+                url: '{% url "search.views.ajax_search_users" %}?q=%QUERY&max=' + MAX_SEARCH_SGS,
+                transform: function (response) {
+                    $('#navbar_search').data('up_limited', response.is_limited);
+                    return $.map(response.result, function (user) {
+                        return $.extend({}, user, {
+                            'id': "u_" + user.id,
+                            'id_post': user.id,
+                            'type': "user"
+                        });
+                    });
+                }
+            }
+        });
+
+        $('.selectpicker').selectpicker({
+            style: 'form-control nowrap',
+            styleBase: 'form-control',
+        });
+
+        const $course_teachers = $('#course_teachers');
+
+        $course_teachers.tagsinput({
+            maxTags: 25,
+            itemValue: 'id',
+            itemText: 'fullname',
+            focusClass: 'focus',
+            tagClass: function (item) {
+                if (item.type === 'user') {
+                    return 'label label-success';
+                }
+            },
+            typeaheadjs: [
+                {
+                    highlight: true,
+                    hint: false,
+                    minLength: 3
+                },
+                {
+                    name: 'users',
+                    displayKey: 'fullname',
+                    source: users_bloodhound.ttAdapter(),
+                    templates: {
+                        suggestion: function (data) {
+                            const table_html = '<div class="sgs-result-up" data-url="{0}"><table>' +
+                                '<tr><td style="padding-right: 10px;"><img class="avatar" src="{1}" style="width: 30px; height: 30px;"></td>' +
+                                '<td><div><strong>{2}</strong></div>{3}</td></tr>' +
+                                '<tr><td></td><td>{4}</td></tr>' +
+                                '<tr><td></td><td><strong>Логины</strong></td></tr>' +
+                                '<tr><td></td><td>{5}@ <small class="text-muted">Anytask</small></td></tr>' +
+                                '{6}' +
+                                '{7}' +
+                                '</table></div>';
+                            let email_html = '';
+                            let ya_contest_login_html = '';
+                            let ya_passport_email_html = '';
+                            let avatar = data.avatar;
+                            let status_html = '';
+                            const status_template = '<span class="label label-status-sgs" style="background-color: {0}">{1}</span>';
+                            const MAX_STATUSES = 2;
+                            let status_counter = 0;
+
+                            while (status_counter < data.statuses.length) {
+                                if (status_counter === MAX_STATUSES) {
+                                    status_html += '<span class="label label-status-sgs label-default ">ещё' + (data.statuses.length - MAX_STATUSES) + '</span>';
+                                    break;
+                                }
+
+                                status_html += status_template.format(data.statuses[status_counter][1], data.statuses[status_counter][0]);
+                                ++status_counter;
+                            }
+
+                            if (!avatar)
+                                avatar = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mm&f=y';
+                            if (data.email)
+                                email_html = '<div class="sgs-email">{0}</div>'.format(data.email);
+                            if (data.ya_contest_login)
+                                ya_contest_login_html = '<tr><td></td><td>{0}@ <small class="text-muted">{% trans "jakontest" %}</small></td></tr>'.format(data.ya_contest_login);
+                            if (data.ya_passport_email)
+                                ya_passport_email_html = '<tr><td></td><td>{0} <small class="text-muted">{% trans "ja.pochta" %}</small></td></tr>'.format(data.ya_passport_email);
+                            return table_html.format(data.url, avatar, data.fullname, email_html, status_html, data.username, ya_contest_login_html, ya_passport_email_html)
+                        }
+                    }
+                }
+            ]
+        });
+
+        $('.tt-menu').on("mouseleave", function () {
+            $(this).find('.tt-cursor').removeClass('tt-cursor');
+        }).on("mouseenter", 'div.search-show-more', function () {
+            $(this).closest('.tt-menu').find('.tt-cursor').removeClass('tt-cursor');
+        });
+
+        $course_teachers.on('itemAdded', function (e) {
+            if ($course_teachers.data(e.item.type) === undefined) {
+                $course_teachers.data(e.item.type, []);
+            }
+            $course_teachers.data(e.item.type).push(e.item.id_post);
+
+            course_creation_form_validator.element("#course_teachers");
+        }).on('beforeItemRemove', function (e) {
+            if (e.item.id_post === user.id) {
+                e.cancel = true;
+            }
+        }).on('itemRemoved', function (e) {
+            const index = $.inArray(e.item.id_post, $course_teachers.data(e.item.type));
+            if (index !== -1) {
+                $course_teachers.data(e.item.type).splice(index, 1)
+            }
+
+            course_creation_form_validator.element("#course_teachers");
+        });
+
+        $("#course_description").tinymce({
+            language: '{{ user.profile.language }}',
+            skin: 'bootstrap4',
+            menubar: false,
+            content_css: [
+                'https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/css/bootstrap.min.css',
+                '{{ STATIC_URL }}tinymce-style-mail.css',
+                '{{ STATIC_URL }}prism.css'
+            ],
+            setup: function (editor) {
+                editor.addMenuItem('codesample', {
+                    icon: 'codesample',
+                    text: 'Insert/Edit code sample',
+                    cmd: 'codesample'
+                });
+            },
+            init_instance_callback: function (editor) {
+                $('#loading_new').hide();
+                $('.course-creation-form').collapse('show');
+                $('.mce-i-template', '.mce-toolbar').closest('.mce-container').addClass('hidden');
+            },
+            plugins: [
+                'autoresize autolink codesample hr image link lists',
+                'table textpattern wordcount contextmenu paste nonbreaking variable'
+            ],
+            toolbar: 'undo redo | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | image link hr | blockquote codesample table | preview_text',
+            autoresize_bottom_margin: 10,
+            autoresize_overflow_padding: 10,
+            autoresize_min_height: 300,
+            autosave_ask_before_unload: false,
+            image_description: false,
+            link_assume_external_targets: true,
+            relative_urls: false,
+            remove_script_host: false,
+            default_link_target: "_blank",
+            target_list: false,
+            link_title: false,
+            table_default_attributes: {
+                "class": 'table table-bordered table-comment'
+            },
+            textpattern_patterns: [
+                {start: '1. ', cmd: 'InsertOrderedList'}
+            ],
+            contextmenu: "link image codesample",
+            paste_auto_cleanup_on_paste: true,
+            paste_remove_styles: true,
+            paste_remove_styles_if_webkit: true,
+            paste_strip_class_attributes: true,
+            nonbreaking_force_tab: true,
+        });
+
+        var course_creation_form_validator = $('#course_creation_form').validate({
+            submitHandler: function (form) {
+                $("body").prepend('<div id="blockDiv"><div>' +
+                    '<span class="fa fa-circle-o-notch fa-spin"></span>&nbsp;Отправка' +
+                    '</div></div>'
+                );
+
+                const status = document.createElement('div');
+                status.classList.add('alert');
+                status.setAttribute('role', 'alert');
+                const status_close = document.createElement('a');
+                status_close.classList.add('close');
+                status_close.setAttribute('data-dismiss', 'alert');
+                status_close.innerText = '×';
+                status.appendChild(status_close);
+                const status_description = document.createElement('span');
+                status.appendChild(status_description);
+
+                $.post('{% url "courses.views.ajax_send_form" %}', {
+                    'csrfmiddlewaretoken': "{{ csrf_token }}",
+                    'school_name': $("#school_name").val(),
+                    'course_name': $("#course_name").val(),
+                    'course_year': $("#course_year").val(),
+                    'course_format': $('input[name=format]:checked').val(),
+                    'mark_system': $("#mark_system").val(),
+                    'course_teachers[]': $course_teachers.data('user'),
+                    ...getIntegrationsValues(),
+                    ...getStudentsCountValues(),
+                    'course_description': $("#course_description").val(),
+                    'comment': $("#comment").val(),
+                    'g-recaptcha-response': $("#g-recaptcha-response").val(),
+                }).done(function () {
+                    status.classList.add('alert-success');
+                    status_description.innerText = 'Ваша заявка принята';
+                    $('#course_creation_form').trigger("reset");
+                    hideElements(displayDependencies);
+                    $course_teachers.tagsinput('removeAll');
+                    addUserToTagsinput();
+                }).fail(function () {
+                    status.classList.add('alert-danger');
+                    status_description.innerText = 'Произошла ошибка при отправке. Попробуйте ещё раз';
+                }).always(function () {
+                    $("#blockDiv", "body").remove();
+                    grecaptcha.reset(recaptchaWidget);
+                    $("#sending_status").append(status);
+                    $('html, body').animate({
+                        scrollTop: $('html').offset().top
+                    }, 500);
+                });
+            },
+            ignore: ':hidden:not("#course_teachers"):not("#g-recaptcha-response")',
+            onfocusout: false,
+            rules: {
+                course_teachers: {
+                    required: true,
+                    maxlength: false,
+                },
+                school_name: {
+                    required: true,
+                    maxlength: 191,
+                },
+                course_name: {
+                    required: true,
+                    maxlength: 191,
+                },
+                course_year: {
+                    required: true,
+                },
+                format: {
+                    required: true,
+                },
+                ...additionalRules,
+                'g-recaptcha-response': {
+                    required: true,
+                },
+            },
+            messages: {
+                course_teachers: {
+                    required: "укажите преподавателя",
+                },
+                course_name: {
+                    required: "укажите название",
+                    maxlength: "слишком длинное название",
+                },
+                school_name: {
+                    required: "укажите название",
+                    maxlength: "слишком длинное название",
+                },
+                course_year: {
+                    required: "укажите год",
+                },
+                format: {
+                    required: "выберите формат",
+                },
+                ...additionalMessages,
+                'g-recaptcha-response': {
+                    required: "установите флажок и повторите попытку",
+                },
+            },
+            highlight: function (input) {
+                $(input).closest('.form-group').removeClass('has-success').addClass('has-danger');
+            },
+            success: function (label) {
+                label.addClass('valid');
+                label.closest('.form-group').removeClass('has-danger');
+            },
+            errorPlacement: function (error, element) {
+                $(element).closest("div.controls").find('small.text-help').empty().append(error);
+            },
+        });
+
+        $(".tt-input", ".bootstrap-tagsinput").on("keydown", function (e) {
+            if (e.which === 9) {  // enter
+                e.preventDefault();
+            }
+        });
+
+        $("input[type=text]:not(#course_teachers)", "#course_creation_form").on("keyup", function (event) {
+            if (event.target.id) {
+                course_creation_form_validator.element('#' + event.target.id)
+            }
+        });
+
+        const displayDependencies = formats
+            .map(format => format.dependencies.display)
+            .filter(field => field)
+            .flat();
+        hideElements(displayDependencies);
+        for (let format of formats) {
+            $('#' + format.id).on('click', function () {
+                hideElements(displayDependencies);
+                unhideElements(format.dependencies.display)
+            })
+        }
+
+        const checkedDependencies = {{ check_dependencies | javascript }};
+
+        Object.entries(checkedDependencies).forEach(([id, values]) => {
+            $("#" + id).on("click", function () {
+                if ($(this).prop("checked")) {
+                    values.forEach(value => {
+                        $('#' + value).prop("checked", true);
+                    })
+                }
+            });
+            values.forEach(value => {
+                $("#" + value).on("click", function () {
+                    if ($("#" + id).prop("checked")) {
+                        $(this).prop("checked", true);
+                    }
+                })
+            })
+        })
+
+        function addUserToTagsinput() {
+            $course_teachers.tagsinput('add', {
+                type: "user",
+                fullname: user.fullname,
+                id: 'u_' + user.id,
+                id_post: user.id
+            });
+        }
+
+        addUserToTagsinput();
+
+        $("#btn_send_form").on('click', function () {
+            $("#course_creation_form").submit();
+        });
+    });
+
+    function hideElements(fieldsIds = []) {
+        fieldsIds.forEach(id => {
+            $('#' + id).closest('.form-group').prop('hidden', true)
+        });
+    }
+
+    function unhideElements(fieldsIds = []) {
+        fieldsIds.forEach(id => {
+            $('#' + id).closest('.form-group').prop('hidden', false)
+        });
+    }
+
+    function getIntegrationsValues() {
+        const integrationsValues = {};
+        integrations.forEach(integration => {
+            integrationsValues[integration.id] = $("#" + integration.id).prop("checked");
+        })
+        return integrationsValues;
+    }
+
+    function getStudentsCountValues() {
+        const studentsCountValues = {};
+        studentsCount.forEach(count => {
+            studentsCountValues[count.id] = $("#" + count.id).val() || 0;
+        })
+
+        return studentsCountValues;
+    }
+</script>
