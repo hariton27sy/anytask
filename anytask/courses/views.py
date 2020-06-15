@@ -1251,7 +1251,7 @@ def ajax_send_form(request):
 
     user = request.user
 
-    school_name = request.POST.get("school_name")  # TODO: высылать в сообщении
+    school_name = request.POST.get("school_name")
     course_name = request.POST.get("course_name")
     course_year = request.POST.get("course_year", "").split(" ")[0].split("-")[0]
     course_format = request.POST.get("course_format", "other")
@@ -1267,7 +1267,7 @@ def ajax_send_form(request):
         "rb-and-contest": json.loads(request.POST.get("rb-and-contest", "false")),
     }
     course_description = request.POST.get("course_description", "")
-    comment = request.POST.get("comment", "")  # TODO: высылать в сообщении
+    comment = request.POST.get("comment", "")
 
     if not (school_name and course_name and course_year):
         raise PermissionDenied
@@ -1315,11 +1315,19 @@ def ajax_send_form(request):
 
     message = Message()
     message.sender = user
-    message.title = "Заявка на курс"
+    message.title = "Новая заявка на курс"
+    comment = f"<li>Комментарий: \"{comment}\"</li>" if comment else ""
     message.text = (
-        f"<p>Привет! Если ты видишь это письмо, значит <i>{user.get_full_name()}</i> подал заявку на курс.</p>"
-        f"<p>Школа: \"{school_name}\"</p>"
-        f"<p>Комментарий: \"{comment}\"</p>"
+        f"<p>Привет! Если ты видишь это письмо, значит пользователь "
+        f"<a href=\"/accounts/profile/{user}\">{user.get_full_name()}</a> подал заявку на курс. "
+        f"Перейди в <a href=\"/admin/courses/course/{course.id}/change/\">редактирование курса</a>, "
+        f"чтобы узнать подробности.</p>"
+        f"</br>"
+        f"<p>Дополнительные данные: </p>"
+        f"<ul>"
+        f"<li>Школа: \"{school_name}\"</li>"
+        f"{comment}"
+        f"</ul>"
     )
     message.save()
     message.recipients = recipients
