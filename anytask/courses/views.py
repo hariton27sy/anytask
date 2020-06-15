@@ -1100,7 +1100,7 @@ class ValidationRule:
     def merge(validation_rules):
         union = {}
         for rule in validation_rules:
-            union.update(dict(rule))  # Этого нет в 3 питоне!!
+            union.update(dict(rule))
         return union
 
 
@@ -1267,19 +1267,6 @@ def ajax_send_form(request):
     }
     course_description = request.POST.get("course_description", "")
     comment = request.POST.get("comment", "")  # TODO: высылать в сообщении
-
-    # print {
-    #     'school_name': school_name,
-    #     'course_name': course_name,
-    #     'course_year': course_year,
-    #     'course_format': course_format,
-    #     'mark_system': mark_system,
-    #     'course_teachers': course_teachers,
-    #     'students_count': students_count,
-    #     'integrations': integrations,
-    #     'course_description': course_description,
-    #     'comment': comment,
-    # }
 
     if not (school_name and course_name and course_year):
         raise PermissionDenied
