@@ -1245,12 +1245,78 @@ def check_recaptcha(function):
 @login_required
 @check_recaptcha
 def ajax_send_form(request):
-    user = request.user
-    data = dict(request.POST)
-    for key in data:
-        print key, data[key]
-
     if not request.recaptcha_is_valid:
         return HttpResponseForbidden("Recaptcha is invalid")
+
+    user = request.user
+
+    school_name = request.POST.get("school_name")  # TODO: высылать в сообщении
+    course_name = request.POST.get("course_name")
+    course_year = request.POST.get("course_year", "").split(" ")[0].split("-")[0]
+    course_format = request.POST.get("course_format", "other")
+    mark_system = request.POST.get("mark_system", None)
+    course_teachers = request.POST.getlist("course_teachers[]", [user.id])
+    students_count = {
+        "not-scored": json.loads(request.POST.get("not-scored", "0")),
+        "incomplete": json.loads(request.POST.get("incomplete", "0")),
+    }
+    integrations = {
+        "rb": json.loads(request.POST.get("rb", "false")),
+        "contest": json.loads(request.POST.get("contest", "false")),
+        "rb-and-contest": json.loads(request.POST.get("rb-and-contest", "false")),
+    }
+    course_description = request.POST.get("course_description", "")
+    comment = request.POST.get("comment", "")  # TODO: высылать в сообщении
+
+    # print {
+    #     'school_name': school_name,
+    #     'course_name': course_name,
+    #     'course_year': course_year,
+    #     'course_format': course_format,
+    #     'mark_system': mark_system,
+    #     'course_teachers': course_teachers,
+    #     'students_count': students_count,
+    #     'integrations': integrations,
+    #     'course_description': course_description,
+    #     'comment': comment,
+    # }
+
+    if not (school_name and course_name and course_year):
+        raise PermissionDenied
+
+    course = Course()
+    course.name = course_name
+    course.information = course_description
+    try:
+        course.year = Year.objects.get(start_year=course_year)
+    except Year.DoesNotExist:
+        course.year = get_current_year()
+    course.is_active = True
+    course.save()
+    for teacher_id in course_teachers:
+        try:
+            course.teachers.add(User.objects.get(id=teacher_id))
+        except User.DoesNotExist:
+            raise PermissionDenied
+
+    course.rb_integrated = integrations["rb"]
+    if course_format == "shad":
+        course.contest_integrated = integrations["contest"]
+        course.send_rb_and_contest_together = integrations["rb-and-contest"]
+
+    course.private = True
+
+    try:
+        course.mark_system = CourseMarkSystem.objects.get(name=mark_system)
+    except CourseMarkSystem.DoesNotExist:
+        pass
+
+    if course_format == "task":
+        course.is_python_task = True
+        course.max_incomplete_tasks = students_count["incomplete"]
+        course.max_not_scored_tasks = students_count["not-scored"]
+
+    course.unready = True
+    course.save()
 
     return HttpResponse("OK")
