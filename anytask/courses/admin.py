@@ -5,7 +5,11 @@ from django.contrib import admin
 class CourseAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         if request.user.is_superuser or request.user.has_perm('courses.can_moderate'):
-            return self.model.any_objects.get_queryset()
+            qs = self.model.any_objects.get_queryset()
+            ordering = self.get_ordering(request)
+            if ordering:
+                qs = qs.order_by(*ordering)
+            return qs
         return super().get_queryset(request)
 
     list_display = ('name', 'year',)
