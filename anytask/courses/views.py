@@ -5,7 +5,7 @@ from django.http import Http404, QueryDict
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse, HttpResponseForbidden
 from django.db.models import Q
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Permission
 from django.utils.translation import ugettext as _
 from django.utils.timezone import localtime, now
 from django.contrib.auth.decorators import login_required
@@ -32,6 +32,7 @@ from users.forms import InviteActivationForm
 from users.models import UserProfile
 from courses import pythontask
 from lessons.models import Lesson
+from mail.models import Message
 
 from common.ordered_dict import OrderedDict
 from common.timezone import convert_datetime
@@ -1305,5 +1306,23 @@ def ajax_send_form(request):
 
     course.unready = True
     course.save()
+
+    moderate_permission = Permission.objects.get(codename='can_moderate')
+    recipients = User.objects.filter(
+        Q(groups__permissions=moderate_permission) |
+        Q(user_permissions=moderate_permission) |
+        Q(is_superuser=True))
+
+    message = Message()
+    message.sender = user
+    message.title = "Заявка на курс"
+    message.text = (
+        f"<p>Привет! Если ты видишь это письмо, значит <i>{user.get_full_name()}</i> подал заявку на курс.</p>"
+        f"<p>Школа: \"{school_name}\"</p>"
+        f"<p>Комментарий: \"{comment}\"</p>"
+    )
+    message.save()
+    message.recipients = recipients
+    message.recipients_user = recipients
 
     return HttpResponse("OK")
