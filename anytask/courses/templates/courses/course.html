@@ -625,15 +625,19 @@
                                 {% if course.can_edit %}
                                     <div class="btn-group pull-xs-right">
                                         <a type="button" class="btn btn-secondary btn-sm"
-                                           href="#">{% trans "dobavit_article" %}</a>
+                                           href="/course/{{ course.id }}/create_article">{% trans "dobavit_article" %}</a>
                                     </div>
                                 {% endif %}
                             </h5>
 
                             <br>
-                            {% for article in wiki_articles %}
-                                <a href="/course/wiki/article/{{ article.id }}">{{ article.name }}</a>
-                            {% endfor %}
+                            <ul>
+                                {% for article in wiki_articles %}
+                                <li style="list-style: none">
+                                    <a href="/course/wiki/article/{{ article.id }}">{{ article.name }}</a>
+                                </li>
+                                {% endfor %}
+                            </ul>
                         </div>
                     {% endif %}
                 </div>
