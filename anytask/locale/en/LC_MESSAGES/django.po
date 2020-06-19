@@ -1779,3 +1779,6 @@ msgstr ""
 #: courses/templates/courses/course.html:628
 msgid "dobavit_article"
 msgstr ""
+
+msgid "redaktirovanie_statii"
+msgstr ""

@@ -18,7 +18,7 @@ import logging
 import requests
 from reversion import revisions as reversion
 
-from courses.models import Course, DefaultTeacher, StudentCourseMark, MarkField, FilenameExtension
+from courses.models import Course, DefaultTeacher, StudentCourseMark, MarkField, FilenameExtension, Wiki, Article
 from groups.models import Group
 from tasks.models import Task, TaskGroupRelations
 from years.models import Year
@@ -36,7 +36,7 @@ from lessons.models import Lesson
 from common.ordered_dict import OrderedDict
 from common.timezone import convert_datetime
 
-from courses.forms import default_teacher_forms_factory, DefaultTeacherForm
+from courses.forms import default_teacher_forms_factory, DefaultTeacherForm, ArticleForm
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML
@@ -1085,3 +1085,38 @@ def view_statistic(request, course_id):
 
     if course.is_python_task:
         return pythontask.python_stat(request, course)
+
+
+@login_required
+def create_article(request, course_id):
+    course = get_object_or_404(Course, id=course_id)
+
+    if not course.user_is_teacher(request.user):
+        raise PermissionDenied
+
+    if request.method == 'POST':
+        name = request.POST.get("name")
+        markdown_body = request.POST.get("markdown_body")
+
+        article = Article()
+        article.name = name
+        article.markdown_body = markdown_body
+        article.wiki = course.wiki
+        article.save()
+
+        return HttpResponse(json.dumps({'page_title': course.name + ' | ' + str(course.year),
+                                        'redirect_page': '/course/' + str(
+                                            course.id)
+                                        }),
+                            content_type="application/json")
+
+    article_form = ArticleForm()
+    schools = course.school_set.all()
+
+    context = {
+        "form": article_form,
+        "course": course,
+        "school": schools[0] if schools else ''
+    }
+
+    return render(request, "courses/edit_article.html", context)

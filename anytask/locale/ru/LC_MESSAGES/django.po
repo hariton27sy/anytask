@@ -2520,3 +2520,6 @@ msgstr "Вики"
 #: courses/templates/courses/course.html:628
 msgid "dobavit_article"
 msgstr "Добавить статью"
+
+msgid "redaktirovanie_statii"
+msgstr "Редактирование статьи"
