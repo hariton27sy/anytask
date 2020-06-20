@@ -141,7 +141,7 @@
     </style>
     <form id="course_article_form" action="{{ request.get_full_path }}" method="POST" >
         {% csrf_token %}
-        <div class="col-md-12 row">
+        <div class="col ">
             <div class="card card-block" >
                 {% for field in form %}
                     {% if field.is_hidden %}
