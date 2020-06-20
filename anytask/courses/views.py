@@ -1110,6 +1110,34 @@ def create_article(request, course_id):
 
 
 @login_required
+def edit_article(request, article_id):
+    article = get_object_or_404(Article, id=article_id)
+    course = article.wiki.course
+
+    if not course.user_is_teacher(request.user):
+        raise PermissionDenied
+
+    if request.method == 'POST':
+        return update_article(request, course, article_id)
+
+    form_data = {
+        'name': article.name,
+        'markdown_body': article.markdown_body
+    }
+
+    article_form = ArticleForm(form_data)
+    schools = course.school_set.all()
+
+    context = {
+        "form": article_form,
+        "course": course,
+        "school": schools[0] if schools else ''
+    }
+
+    return render(request, "courses/edit_article.html", context)
+
+
+@login_required
 def article_page(request, article_id):
     user = request.user
     if not user.profile.is_active():
