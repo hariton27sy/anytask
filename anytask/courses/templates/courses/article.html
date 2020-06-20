@@ -28,14 +28,7 @@
 {% endblock breadcrumbs %}
 
 {% block scripts %}
-    <link rel="stylesheet"
-      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.0.0/styles/default.min.css">
-
-    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.0.0/highlight.min.js"></script>
-    <script type="text/javascript">
-        hljs.initHighlightingOnLoad();
-    </script>
-{#    {% include "courses/article_js.html" %}#}
+    {% include "courses/article_js.html" %}
 {% endblock scripts %}
 
 {% block navbar %}
@@ -139,6 +132,8 @@
             }
         }
     </style>
+
+    <div id="error_text"></div>
     <div class="row">
         <div class="col-lg-3 col-md-12">
             <div class="card card-block m-b-1">
@@ -165,10 +160,9 @@
                 {% if user_can_edit %}
                     <div class="col-lg-6 col-md-12">
                         <div class="btn-group pull-xs-right">
-                        <a type="button" class="btn btn-secondary btn-sm"
+                        <a id="edit-article-button" type="button" class="btn btn-secondary btn-sm"
                            href="/course/edit_article/{{ article.id }}">{% trans "redaktirovat_article" %}</a>
-                        <a type="button" class="btn btn-secondary btn-sm"
-                           href="/course/delete_article/{{ article.id }}">{% trans "udalit_article" %}</a>
+                        <button id="delete-article-modal-button" type="button" class="btn btn-secondary btn-sm" id="delete-article-modal-button">{% trans "udalit_article" %}</button>
                     </div>
                     </div>
                 {% endif %}
@@ -176,6 +170,24 @@
             <hr/>
             <div class="wiki-article">
                 {{ article.html_body|safe }}
+            </div>
+        </div>
+    </div>
+
+    <div id="delete-article-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="modal_article_header" aria-hidden="true">
+        <div class="modal-dialog"  role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">×</button>
+                    <h5 class="modal-title" id="modal_article_header">Удалить статью?</h5>
+                </div>
+                <div class="modal-footer">
+                    <form id="delete-article-form" action="{% url 'courses.views.delete_article' article.id %}" method="POST">
+                        {% csrf_token %}
+                        <input id="delete-article-button" type="submit" class="btn btn-primary" value="Удалить статью" data-dismiss="modal">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

@@ -1091,7 +1091,7 @@ def view_statistic(request, course_id):
 def create_article(request, course_id):
     course = get_object_or_404(Course, id=course_id)
 
-    if not course.user_is_teacher(request.user):
+    if not course.user_can_edit_course(request.user):
         raise PermissionDenied
 
     if request.method == 'POST':
@@ -1114,7 +1114,7 @@ def edit_article(request, article_id):
     article = get_object_or_404(Article, id=article_id)
     course = article.wiki.course
 
-    if not course.user_is_teacher(request.user):
+    if not course.user_can_edit_course(request.user):
         raise PermissionDenied
 
     if request.method == 'POST':
@@ -1189,3 +1189,27 @@ def update_article(request, course, article_id=None):
                         course.id)
                     }),
         content_type="application/json")
+
+
+@require_http_methods(['POST'])
+@login_required
+def delete_article(request, article_id):
+    user = request.user
+    if not user.profile.is_active():
+        raise PermissionDenied
+
+    article = get_object_or_404(Article, id=article_id)
+    course = article.wiki.course
+
+    if not course.user_can_edit_course(user):
+        raise PermissionDenied
+
+    article.delete()
+
+    return HttpResponse(
+        json.dumps({'page_title': course.name + ' | ' + str(course.year),
+                    'redirect_page': '/course/' + str(
+                        course.id)
+                    }),
+        content_type="application/json"
+    )
