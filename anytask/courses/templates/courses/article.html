@@ -107,7 +107,7 @@
 
         .list-group-block {
             overflow: auto;
-            height: 65vh;
+            max-height: 65vh;
         }
 
         .ellipsis-overflow {
@@ -118,6 +118,10 @@
 
         .margin-left-0 {
             margin-left: 0;
+        }
+
+        .articles-list {
+            margin-bottom: 20px;
         }
 
         @media (min-width: 992px) {
@@ -134,16 +138,21 @@
             .row .col-sm-12:first-child {
                 padding-right: 0;
             }
+
+            .articles-list {
+                padding: 0 30px;
+                margin-bottom: 0;
+            }
         }
     </style>
 
     <div class="row margin-left-0" id="error_text"></div>
     <div class="row">
-        <div class="col-lg-3 col-md-12">
-            <div class="card card-block m-b-1">
+        <div class="col-lg-3 col-md-12 articles-list">
+            <div class="row card card-block m-b-1">
                 <h5>Список статей</h5>
             </div>
-            <div class="list-group list-group-block">
+            <div class="row list-group list-group-block">
                 {% for inner_article in article_list %}
                     {% if inner_article.id == article.id %}
                         <a href="/course/article/{{ inner_article.id }}"

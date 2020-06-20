@@ -16,10 +16,6 @@
         });
 
         $('#delete-article-button').click(() => {
-            let splittedLocation = window.location.href.split('/').filter(part => part.length !== 0);
-            let articleId = splittedLocation[splittedLocation.length - 1];
-            console.log(articleId);
-
             $('#delete-article-form').ajaxSubmit({
                 success: () => {
                     $('#error_text').html('<div class="alert alert-success" role ="alert" id="edit_task_err">' +
