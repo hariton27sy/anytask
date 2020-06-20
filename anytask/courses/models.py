@@ -109,7 +109,7 @@ class Article(models.Model):
         return self.name
 
     def save(self):
-        self.html_body = markdown(self.markdown_body)
+        self.html_body = markdown(self.markdown_body, extensions=['fenced_code', 'tables'])
         super(Article, self).save()
 
 

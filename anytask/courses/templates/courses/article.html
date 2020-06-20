@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load django_bootstrap_breadcrumbs %}
+{% load crispy_forms_tags %}
+{% load sanitize_html icon %}
+{% load dict_func %}
+{% load task_taken_func %}
+{% load info %}
+
+{% get_current_language as LANGUAGE_CODE %}
+
+{% block title %}{{ article.name }} | {{ course.name }} | {{ course.year }}{% endblock %}
+
+{% block breadcrumbs %}
+    {{ block.super }}
+    {% if school %}
+        {% breadcrumb school.name school.get_absolute_url %}
+    {% endif %}
+    {% if not seminar %}
+        {% breadcrumb course.name course.get_absolute_url %}
+    {% else %}
+        {% breadcrumb course.name course.get_absolute_url %}
+        {% breadcrumb seminar|get_title:LANGUAGE_CODE "" %}
+    {% endif %}
+    {% breadcrumb_for "" %}
+        {{ article.name }}
+    {% endbreadcrumb_for %}
+{% endblock breadcrumbs %}
+
+{% block scripts %}
+    <link rel="stylesheet"
+      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.0.0/styles/default.min.css">
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.0.0/highlight.min.js"></script>
+    <script type="text/javascript">
+        hljs.initHighlightingOnLoad();
+    </script>
+{#    {% include "courses/article_js.html" %}#}
+{% endblock scripts %}
+
+{% block navbar %}
+    <ul class="nav navbar-nav">
+        <li class="nav-item">
+            <a class="nav-link" href="{{ course.get_absolute_url }}">{% trans "stranica_kursa" %}</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link"
+               href="{{ course.get_absolute_url }}/gradebook">{% trans "obshaja_vedomost" %}</a>
+        </li>
+        {% if visible_attendance_log %}
+            <li class="nav-item">
+                <a class="nav-link hidden-md" href="{{ course.get_absolute_url }}/attendance">{% trans "zhurnal_poseshaemosti" %}</a>
+                <a class="nav-link visible-md" href="{{ course.get_absolute_url }}/attendance">{% trans "poseshaemost" %}</a>
+            </li>
+        {% endif %}
+        {% if visible_queue %}
+            <li class="nav-item">
+                <a class="nav-link" href="{% url "courses.views.queue_page" course.id %}">{% trans "ochered_na_proverku" %}</a>
+            </li>
+        {% endif %}
+        {% if user_is_teacher %}
+            <li class="nav-item active">
+                <a class="nav-link" href="">{% trans "nastrojki" %}</a>
+            </li>
+        {% endif %}
+    </ul>
+{% endblock navbar %}
+
+{% block content %}
+    {{ block.super }}
+    <style>
+        .card {
+            margin-bottom: 1.5rem;
+            border-bottom-width: 1px;
+            border-bottom-color: rgb(221, 221, 221);
+            border-bottom-style: solid;
+        }
+
+        .card {
+            margin-bottom: 0;
+            border-bottom-style: none;
+        }
+
+        .wiki-article table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .wiki-article table td,
+        .wiki-article table th {
+            padding: 12px 16px;
+            border-right: 1px solid #e8e9eb;
+        }
+
+        .wiki-article table thead tr {
+            font-weight: bold;
+            background: #4197D1;
+            color: #fff;
+            border-top: 1px solid #e8e9eb;
+        }
+
+        .wiki-article table tr {
+            border-bottom: 1px solid #e8e9eb;
+        }
+
+        .wiki-article table td:last-of-type,
+        .wiki-article table th:last-of-type {
+            border-right: none;
+        }
+
+        .wiki-article table tbody tr:hover {
+            background: #e8f6ff;
+        }
+
+        .list-group-block {
+            overflow: auto;
+            height: 65vh;
+        }
+
+        .ellipsis-overflow {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        @media (min-width: 992px) {
+            #card_contest .form-group .btn-div {
+                margin-top: 0;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .row .col-sm-12:not(:last-child) {
+                padding-right: 0;
+            }
+
+            .row .col-sm-12:first-child {
+                padding-right: 0;
+            }
+        }
+    </style>
+    <div class="row">
+        <div class="col-lg-3 col-md-12">
+            <div class="card card-block m-b-1">
+                <h5>Список статей</h5>
+            </div>
+            <div class="list-group list-group-block">
+                {% for inner_article in article_list %}
+                    {% if inner_article.id == article.id %}
+                        <a href="/course/article/{{ inner_article.id }}"
+                       class="list-group-item active ellipsis-overflow">{{ inner_article.name }}</a>
+                    {% else %}
+                        <a href="/course/article/{{ inner_article.id }}"
+                       class="list-group-item ellipsis-overflow">{{ inner_article.name }}</a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+        </div>
+        <div class="col-lg-9 col-md-12 p-x-3 card card-block">
+            <h2 class="row">
+                <div class="col-lg-6 col-md-12">
+                    {{ article.name }}
+                </div>
+                {% if user_can_edit %}
+                    <div class="col-lg-6 col-md-12">
+                        <div class="btn-group pull-xs-right">
+                        <a type="button" class="btn btn-secondary btn-sm"
+                           href="/course/edit_article/{{ article.id }}">{% trans "redaktirovat_article" %}</a>
+                        <a type="button" class="btn btn-secondary btn-sm"
+                           href="/course/delete_article/{{ article.id }}">{% trans "udalit_article" %}</a>
+                    </div>
+                    </div>
+                {% endif %}
+            </h2>
+            <hr/>
+            <div class="wiki-article">
+                {{ article.html_body|safe }}
+            </div>
+        </div>
+    </div>
+{% endblock %}

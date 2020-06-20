@@ -1095,20 +1095,7 @@ def create_article(request, course_id):
         raise PermissionDenied
 
     if request.method == 'POST':
-        name = request.POST.get("name")
-        markdown_body = request.POST.get("markdown_body")
-
-        article = Article()
-        article.name = name
-        article.markdown_body = markdown_body
-        article.wiki = course.wiki
-        article.save()
-
-        return HttpResponse(json.dumps({'page_title': course.name + ' | ' + str(course.year),
-                                        'redirect_page': '/course/' + str(
-                                            course.id)
-                                        }),
-                            content_type="application/json")
+        return update_article(request, course)
 
     article_form = ArticleForm()
     schools = course.school_set.all()
@@ -1120,3 +1107,57 @@ def create_article(request, course_id):
     }
 
     return render(request, "courses/edit_article.html", context)
+
+
+@login_required
+def article_page(request, article_id):
+    user = request.user
+    if not user.profile.is_active():
+        raise PermissionDenied
+
+    article = get_object_or_404(Article, id=article_id)
+
+    course = article.wiki.course
+    schools = course.school_set.all()
+
+    if course.private and not course.user_is_attended(request.user):
+        return render(request, 'courses/course_forbidden.html',
+                      {"course": course,
+                       'school': schools[0] if schools else '',
+                       'invite_form': InviteActivationForm()})
+
+    can_edit = False
+
+    if course.user_can_edit_course(user):
+        can_edit = True
+
+    context = {
+        'course': course,
+        'article': article,
+        'user_can_edit': can_edit,
+        'school': schools[0] if schools else '',
+        'article_list': course.wiki.article_set.all()
+    }
+
+    return render(request, 'courses/article.html', context)
+
+
+def update_article(request, course, article_id=None):
+    name = request.POST.get("name")
+    markdown_body = request.POST.get("markdown_body")
+
+    if article_id:
+        article = get_object_or_404(Article, id=article_id)
+    else:
+        article = Article(wiki=course.wiki)
+
+    article.name = name
+    article.markdown_body = markdown_body
+    article.save()
+
+    return HttpResponse(
+        json.dumps({'page_title': course.name + ' | ' + str(course.year),
+                    'redirect_page': '/course/' + str(
+                        course.id)
+                    }),
+        content_type="application/json")
