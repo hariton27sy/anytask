@@ -555,6 +555,7 @@ msgstr ""
 #: users/templates/user_profile.html:418 users/templates/user_profile.html:442
 #: users/templates/user_profile.html:467 users/templates/user_settings.html:13
 #: users/templates/user_settings.html:21
+#: courses/templates/courses/article.html:201
 msgid "zakryt"
 msgstr ""
 
@@ -568,12 +569,14 @@ msgstr ""
 
 #: courses/templates/courses/settings_js.html:262
 #: users/templates/user_settings.html:16
+#: courses/templates/courses/edit_article_js.html:24
 msgid "sohraneno_uspeshno"
 msgstr ""
 
 #: courses/templates/courses/settings_js.html:272
 #: tasks/templates/task_create_or_edit_js.html:185
 #: users/templates/user_settings.html:24
+#: courses/templates/courses/edit_article_js.html:38
 msgid "oshibka_pri_sohranenii"
 msgstr ""
 
@@ -1781,4 +1784,49 @@ msgid "dobavit_article"
 msgstr ""
 
 msgid "redaktirovanie_statii"
+msgstr ""
+
+#: courses/templates/courses/article_js.html:23
+msgid "udaleno_uspeshno"
+msgstr ""
+
+#: courses/templates/courses/article_js.html:32
+msgid "oshibka_pri_udalenii"
+msgstr ""
+
+#: courses/templates/courses/article.html:153
+msgid "spisok_statei"
+msgstr ""
+
+#: courses/templates/courses/article.html:177
+msgid "redaktirovat_article"
+msgstr ""
+
+#: courses/templates/courses/article.html:178
+#: courses/templates/courses/article.html:195
+msgid "udalit_article"
+msgstr ""
+
+#: courses/templates/courses/article.html:200
+msgid "udalit"
+msgstr ""
+
+#: courses/templates/courses/article.html:198
+msgid "vi uverenni chto hotite udalit article"
+msgstr ""
+
+#: courses/templates/courses/edit_article.html:25
+msgid "redaktirovanie_statii"
+msgstr ""
+
+#: courses/templates/courses/edit_article_js.html:38
+msgid "nazvanie_statii_neobhodimo"
+msgstr ""
+
+#: courses/templates/courses/edit_article_js.html:39
+msgid "slishkom_dlinnoe"
+msgstr ""
+
+#: courses/templates/courses/edit_article_js.html:72
+msgid "neobhodim_tekst"
 msgstr ""

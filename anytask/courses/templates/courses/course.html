@@ -121,7 +121,7 @@
                     {% if course.wiki %}
                         <a id="wiki-link" href="#wiki-tab"
                             class="list-group-item scrollto">
-                        <span class="fa fa-book"></span> {% trans "wiki" %}</a>
+                        <span class="fa fa-book"></span> {% trans "wiki" %}</a> {# TODO: wiki tab picture #}
                     {% endif %}
                 </div>
                 <br>
@@ -633,7 +633,7 @@
                             <br>
                             <ul>
                                 {% for article in wiki_articles %}
-                                <li style="list-style: none">
+                                <li style="list-style: none"> {# TODO: bootstrap list! #}
                                     <a href="/course/article/{{ article.id }}">{{ article.name }}</a>
                                 </li>
                                 {% endfor %}
