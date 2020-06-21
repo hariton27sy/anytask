@@ -631,13 +631,12 @@
                             </h5>
 
                             <br>
-                            <ul>
+                            <div class="list-group list-group-flush">
                                 {% for article in wiki_articles %}
-                                <li style="list-style: none"> {# TODO: bootstrap list! #}
-                                    <a href="/course/article/{{ article.id }}">{{ article.name }}</a>
-                                </li>
+                                    <a class="list-group-item list-group-item-action p-l-0 ellipsis-overflow text-primary"
+                                       href="/course/article/{{ article.id }}">{{ article.name }}</a>
                                 {% endfor %}
-                            </ul>
+                            </div>
                         </div>
                     {% endif %}
                 </div>

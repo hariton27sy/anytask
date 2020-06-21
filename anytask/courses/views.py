@@ -1089,9 +1089,10 @@ def view_statistic(request, course_id):
 
 @login_required
 def create_article(request, course_id):
+    user = request.user
     course = get_object_or_404(Course, id=course_id)
 
-    if not course.user_can_edit_course(request.user):
+    if not course.user_can_edit_course(user):
         raise PermissionDenied
 
     if request.method == 'POST':
@@ -1103,7 +1104,10 @@ def create_article(request, course_id):
     context = {
         "form": article_form,
         "course": course,
-        "school": schools[0] if schools else ''
+        "school": schools[0] if schools else '',
+        'visible_queue': course.user_can_see_queue(user),
+        'user_is_teacher': course.user_is_teacher(user),
+        'visible_attendance_log': course.user_can_see_attendance_log(user),
     }
 
     return render(request, "courses/edit_article.html", context)
@@ -1111,10 +1115,11 @@ def create_article(request, course_id):
 
 @login_required
 def edit_article(request, article_id):
+    user = request.user
     article = get_object_or_404(Article, id=article_id)
     course = article.wiki.course
 
-    if not course.user_can_edit_course(request.user):
+    if not course.user_can_edit_course(user):
         raise PermissionDenied
 
     if request.method == 'POST':
@@ -1131,7 +1136,10 @@ def edit_article(request, article_id):
     context = {
         "form": article_form,
         "course": course,
-        "school": schools[0] if schools else ''
+        "school": schools[0] if schools else '',
+        'visible_queue': course.user_can_see_queue(user),
+        'user_is_teacher': course.user_is_teacher(user),
+        'visible_attendance_log': course.user_can_see_attendance_log(user),
     }
 
     return render(request, "courses/edit_article.html", context)
@@ -1164,7 +1172,10 @@ def article_page(request, article_id):
         'article': article,
         'user_can_edit': can_edit,
         'school': schools[0] if schools else '',
-        'article_list': course.wiki.article_set.all()
+        'article_list': course.wiki.article_set.all(),
+        'visible_queue': course.user_can_see_queue(user),
+        'user_is_teacher': course.user_is_teacher(user),
+        'visible_attendance_log': course.user_can_see_attendance_log(user),
     }
 
     return render(request, 'courses/article.html', context)

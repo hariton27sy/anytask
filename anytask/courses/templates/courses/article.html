@@ -40,7 +40,7 @@
             <a class="nav-link"
                href="{{ course.get_absolute_url }}/gradebook">{% trans "obshaja_vedomost" %}</a>
         </li>
-        {% if visible_attendance_log %} {# TODO: прокинуть во views нужные для navbar поля #}
+        {% if visible_attendance_log %}
             <li class="nav-item">
                 <a class="nav-link hidden-md" href="{{ course.get_absolute_url }}/attendance">{% trans "zhurnal_poseshaemosti" %}</a>
                 <a class="nav-link visible-md" href="{{ course.get_absolute_url }}/attendance">{% trans "poseshaemost" %}</a>
@@ -52,8 +52,8 @@
             </li>
         {% endif %}
         {% if user_is_teacher %}
-            <li class="nav-item active">
-                <a class="nav-link" href="">{% trans "nastrojki" %}</a>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url "courses.views.course_settings" course.id %}">{% trans "nastrojki" %}</a>
             </li>
         {% endif %}
     </ul>
@@ -108,12 +108,6 @@
         .list-group-block {
             overflow: auto;
             max-height: 65vh;
-        }
-
-        .ellipsis-overflow {
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
         }
 
         .margin-left-0 {
