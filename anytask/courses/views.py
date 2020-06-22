@@ -1087,6 +1087,7 @@ def view_statistic(request, course_id):
         return pythontask.python_stat(request, course)
 
 
+@require_http_methods(['GET', 'POST'])
 @login_required
 def create_article(request, course_id):
     user = request.user
@@ -1113,6 +1114,7 @@ def create_article(request, course_id):
     return render(request, "courses/edit_article.html", context)
 
 
+@require_http_methods(['GET', 'POST'])
 @login_required
 def edit_article(request, article_id):
     user = request.user
@@ -1145,6 +1147,7 @@ def edit_article(request, article_id):
     return render(request, "courses/edit_article.html", context)
 
 
+@require_http_methods(['GET'])
 @login_required
 def article_page(request, article_id):
     user = request.user
@@ -1181,27 +1184,6 @@ def article_page(request, article_id):
     return render(request, 'courses/article.html', context)
 
 
-def update_article(request, course, article_id=None):
-    name = request.POST.get("name")
-    markdown_body = request.POST.get("markdown_body")
-
-    if article_id:
-        article = get_object_or_404(Article, id=article_id)
-    else:
-        article = Article(wiki=course.wiki)
-
-    article.name = name
-    article.markdown_body = markdown_body
-    article.save()
-
-    return HttpResponse(
-        json.dumps({'page_title': course.name + ' | ' + str(course.year),
-                    'redirect_page': '/course/' + str(
-                        course.id)
-                    }),
-        content_type="application/json")
-
-
 @require_http_methods(['POST'])
 @login_required
 def delete_article(request, article_id):
@@ -1224,3 +1206,24 @@ def delete_article(request, article_id):
                     }),
         content_type="application/json"
     )
+
+
+def update_article(request, course, article_id=None):
+    name = request.POST.get("name")
+    markdown_body = request.POST.get("markdown_body")
+
+    if article_id:
+        article = get_object_or_404(Article, id=article_id)
+    else:
+        article = Article(wiki=course.wiki)
+
+    article.name = name
+    article.markdown_body = markdown_body
+    article.save()
+
+    return HttpResponse(
+        json.dumps({'page_title': course.name + ' | ' + str(course.year),
+                    'redirect_page': '/course/' + str(
+                        course.id)
+                    }),
+        content_type="application/json")

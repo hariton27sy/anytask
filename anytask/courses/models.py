@@ -99,7 +99,7 @@ class Wiki(models.Model):
 
 
 class Article(models.Model):
-    wiki = models.ForeignKey(Wiki, on_delete=models.CASCADE)
+    wiki = models.ForeignKey(Wiki, on_delete=models.CASCADE, null=False)
     name = models.CharField(max_length=100, db_index=False, null=False,
                             blank=False)
     markdown_body = models.TextField(null=True)
@@ -109,7 +109,8 @@ class Article(models.Model):
         return self.name
 
     def save(self):
-        self.html_body = markdown(self.markdown_body, extensions=['fenced_code', 'tables'])
+        self.html_body = markdown(self.markdown_body,
+                                  extensions=['fenced_code', 'tables'])
         super(Article, self).save()
 
 

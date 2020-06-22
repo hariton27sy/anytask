@@ -22,9 +22,7 @@
         {% breadcrumb course.name course.get_absolute_url %}
         {% breadcrumb seminar|get_title:LANGUAGE_CODE "" %}
     {% endif %}
-    {% breadcrumb_for "" %}
-        {{ article.name }}
-    {% endbreadcrumb_for %}
+    {% breadcrumb article.name "" %}
 {% endblock breadcrumbs %}
 
 {% block scripts %}
@@ -166,16 +164,20 @@
         </div>
         <div class="col-lg-9 col-md-12 p-x-3 card card-block">
             <h2 class="row">
-                <div class="col-lg-6 col-md-12">
-                    {{ article.name }}
-                </div>
                 {% if user_can_edit %}
+                    <div class="col-lg-6 col-md-12">
+                        {{ article.name }}
+                    </div>
                     <div class="col-lg-6 col-md-12">
                         <div class="btn-group pull-xs-right">
                         <a id="edit-article-button" type="button" class="btn btn-secondary btn-sm"
                            href="/course/edit_article/{{ article.id }}">{% trans "redaktirovat_article" %}</a>
-                        <button id="delete-article-modal-button" type="button" class="btn btn-secondary btn-sm" id="delete-article-modal-button">{% trans "udalit_article" %}</button>
+                        <button id="delete-article-modal-button" type="button" class="btn btn-secondary btn-sm">{% trans "udalit_article" %}</button>
                     </div>
+                    </div>
+                {% else %}
+                    <div class="col-md-12">
+                        {{ article.name }}
                     </div>
                 {% endif %}
             </h2>
@@ -186,24 +188,26 @@
         </div>
     </div>
 
-    <div id="delete-article-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="modal_article_header" aria-hidden="true">
-        <div class="modal-dialog"  role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal">×</button>
-                    <h5 class="modal-title" id="modal_article_header">{% trans "udalit_article" %}?</h5>
-                </div>
-                <div class="modal-body">
-                    <p>{% trans "vi uverenni chto hotite udalit article" %} "{{ article.name }}"?</p>
-                </div>
-                <div class="modal-footer">
-                    <form id="delete-article-form" action="{% url 'courses.views.delete_article' article.id %}" method="POST">
-                        {% csrf_token %}
-                        <input id="delete-article-button" type="submit" class="btn btn-primary" value="{% trans "udalit" %}" data-dismiss="modal">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans "zakryt" %}</button>
-                    </form>
+    {% if user_can_edit %}
+        <div id="delete-article-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="modal_article_header" aria-hidden="true">
+            <div class="modal-dialog"  role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">×</button>
+                        <h5 class="modal-title" id="modal_article_header">{% trans "udalit_article" %}?</h5>
+                    </div>
+                    <div class="modal-body">
+                        <p>{% trans "vi uverenni chto hotite udalit article" %} "{{ article.name }}"?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <form id="delete-article-form" action="{% url 'courses.views.delete_article' article.id %}" method="POST">
+                            {% csrf_token %}
+                            <input id="delete-article-button" type="submit" class="btn btn-primary" value="{% trans "udalit" %}" data-dismiss="modal">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans "zakryt" %}</button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    {% endif %}
 {% endblock %}

@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.conf import settings
 from schools.models import School
 from courses.models import Course, IssueField, FilenameExtension, CourseMarkSystem, MarkField, IssueStatusSystem, \
-    DefaultTeacher
+    DefaultTeacher, Wiki, Article
 from issues.models import Issue, IssueStatus
 from groups.models import Group
 from years.models import Year
@@ -42,6 +42,7 @@ class CreateTest(TestCase):
         issue_fields = [IssueField.objects.create(name='name_issue_fields')]
         filename_extensions = [FilenameExtension.objects.create(name='name_filename_extensions')]
         mark_system = CourseMarkSystem.objects.create(name='name_mark_system')
+        wiki = Wiki.objects.create(name='name_wiki')
 
         course = Course()
         course.name = 'name'
@@ -63,6 +64,7 @@ class CreateTest(TestCase):
         course.can_be_chosen_by_extern = True
         course.group_with_extern = group_with_extern
         course.mark_system = mark_system
+        course.wiki = wiki
         course.save()
         course_id = course.id
 
@@ -87,6 +89,7 @@ class CreateTest(TestCase):
         self.assertEqual(course.can_be_chosen_by_extern, True)
         self.assertEqual(course.group_with_extern, group_with_extern)
         self.assertEqual(course.mark_system, mark_system)
+        self.assertEqual(course.wiki, wiki)
 
 
 class ViewsTest(TestCase):
@@ -116,12 +119,23 @@ class ViewsTest(TestCase):
                                             year=self.year)
         self.course.groups = [self.group]
         self.course.teachers = [self.teacher]
+        self.course.wiki = Wiki.objects.create(name='name_wiki')
         self.course.save()
 
         self.school = School.objects.create(name='school_name',
                                             link='school_link')
         self.school.courses = [self.course]
         self.school.save()
+
+        self.article = Article(name='article_name',
+                               markdown_body='article_body',
+                               wiki=self.course.wiki)
+        self.article.save()
+
+        self.article_to_delete = Article(name='article_delete_name',
+                                         markdown_body='article_delete_body',
+                                         wiki=self.course.wiki)
+        self.article_to_delete.save()
 
     def test_gradebook_anonymously(self):
         client = self.client
@@ -963,6 +977,482 @@ class ViewsTest(TestCase):
 
         table_body_sum = table.tbody('td')[3]
         self.assertEqual(table_body_sum.span.string.strip().strip('\n'), '3.0')
+
+    def test_create_article_anonymously(self):
+        client = self.client
+
+        # post student
+        response = client.post(reverse(courses.views.create_article,
+                                      kwargs={'course_id': self.course.id}),
+                               {'name': 'name_article',
+                                'markdown_body': 'markdown_body'})
+        self.assertEqual(response.status_code, 302)
+
+    def test_create_article_with_student(self):
+        client = self.client
+
+        # login student
+        self.assertTrue(client.login(username=self.student.username,
+                                     password=self.student_password))
+        # post student
+        response = client.post(reverse(courses.views.create_article,
+                                       kwargs={'course_id': self.course.id}),
+                               {'name': 'name_article',
+                                'markdown_body': 'markdown_body'})
+        self.assertEqual(response.status_code, 403)
+
+    def test_create_article_with_teacher(self):
+        client = self.client
+
+        # login teacher
+        self.assertTrue(client.login(username=self.teacher.username,
+                                     password=self.teacher_password))
+
+        # post teacher
+        response = client.post(reverse(courses.views.create_article,
+                                       kwargs={'course_id': self.course.id}),
+                               {'name': 'name_article',
+                                'markdown_body': 'markdown_body'})
+        self.assertEqual(response.status_code, 200)
+
+    def test_edit_article_anonymously(self):
+        client = self.client
+
+        # post student
+        response = client.post(reverse(courses.views.edit_article,
+                                      kwargs={'article_id': self.article.id}),
+                               {'name': 'name_article',
+                                'markdown_body': 'markdown_body'})
+        self.assertEqual(response.status_code, 302)
+
+    def test_edit_article_with_student(self):
+        client = self.client
+
+        # login student
+        self.assertTrue(client.login(username=self.student.username,
+                                     password=self.student_password))
+        # post student
+        response = client.post(reverse(courses.views.edit_article,
+                                       kwargs={'article_id': self.article.id}),
+                               {'name': 'name_article',
+                                'markdown_body': 'markdown_body'})
+        self.assertEqual(response.status_code, 403)
+
+    def test_edit_article_with_teacher(self):
+        client = self.client
+
+        # login teacher
+        self.assertTrue(client.login(username=self.teacher.username,
+                                     password=self.teacher_password))
+
+        # post teacher
+        response = client.post(reverse(courses.views.edit_article,
+                                       kwargs={'article_id': self.article.id}),
+                               {'name': 'name_article',
+                                'markdown_body': 'markdown_body'})
+        self.assertEqual(response.status_code, 200)
+
+    def test_delete_article_anonymously(self):
+        client = self.client
+
+        # post student
+        response = client.post(reverse(courses.views.delete_article,
+                                      kwargs={'article_id':
+                                              self.article_to_delete.id}))
+        self.assertEqual(response.status_code, 302)
+
+    def test_delete_article_with_student(self):
+        client = self.client
+
+        # login student
+        self.assertTrue(client.login(username=self.student.username,
+                                     password=self.student_password))
+        # post student
+        response = client.post(reverse(courses.views.delete_article,
+                                       kwargs={'article_id':
+                                               self.article_to_delete.id}))
+        self.assertEqual(response.status_code, 403)
+
+    def test_delete_article_with_teacher(self):
+        client = self.client
+
+        # login teacher
+        self.assertTrue(client.login(username=self.teacher.username,
+                                     password=self.teacher_password))
+
+        # post teacher
+        response = client.post(reverse(courses.views.delete_article,
+                                       kwargs={'article_id':
+                                               self.article_to_delete.id}))
+        self.assertEqual(response.status_code, 200)
+
+    def test_article_page_with_post_method(self):
+        client = self.client
+
+        # post
+        response = client.post(reverse(courses.views.article_page,
+                                       kwargs={'article_id': self.article.id}))
+        self.assertEqual(response.status_code, 405)
+
+    def test_delete_article_with_get_method(self):
+        client = self.client
+
+        # get
+        response = client.get(reverse(courses.views.delete_article,
+                                       kwargs={'article_id':
+                                               self.article_to_delete.id}))
+        self.assertEqual(response.status_code, 405)
+
+    def test_create_article_page_anonymously(self):
+        client = self.client
+
+        # get page
+        response = client.get(reverse(courses.views.create_article,
+                                      kwargs={'course_id': self.course.id}))
+        self.assertEqual(response.status_code, 302, "Need login for task_create_page")
+
+    def test_edit_article_page_anonymously(self):
+        client = self.client
+
+        # get page
+        response = client.get(reverse(courses.views.edit_article,
+                                      kwargs={'article_id': self.article.id}))
+        self.assertEqual(response.status_code, 302, "Need login for task_edit_page")
+
+    def test_article_page_anonymously(self):
+        client = self.client
+
+        # get page
+        response = client.get(reverse(courses.views.article_page,
+                                      kwargs={'article_id': self.article.id}))
+        self.assertEqual(response.status_code, 302, "Need login for task_edit_page")
+
+    def test_article_page_with_student(self):
+        client = self.client
+
+        # login student
+        self.assertTrue(client.login(username=self.student.username,
+                                     password=self.student_password))
+
+        # get article page
+        response = client.get(reverse(courses.views.article_page,
+                                      kwargs={'article_id': self.article.id}))
+        self.assertEqual(response.status_code, 200,
+                         "Can't get article_page via student")
+
+        html = BeautifulSoup(response.content)
+        container = html.body.find('div', 'container', recursive=False)
+
+        # title
+        self.assertEqual(html.find('title').string.strip().strip('\n'),
+                         'article_name | course_name | 2016-2017',
+                         'Wrong page title')
+
+        # navbar
+        navbar = html.nav
+        navbar_links = navbar.ul('li')
+        self.assertEqual(len(navbar_links), 2, 'navbar must have only 2 link')
+        self.assertEqual(navbar_links[0].a['href'], '/course/1',
+                         'navbar link 1 wrong')
+        self.assertEqual(navbar_links[1].a['href'], '/course/1/gradebook',
+                         'navbar link 2 wrong')
+
+        # breadcrumbs
+        breadcrumbs = container.find('ul', 'breadcrumb')('li')
+        self.assertEqual(len(breadcrumbs), 4, 'breadcrumbs len is not 4')
+        self.assertEqual(breadcrumbs[0].a['href'], u'/',
+                         'breadcrumbs 1st link wrong')
+        self.assertEqual(breadcrumbs[1].a['href'], u'/school/school_link',
+                         'breadcrumbs 2nd link wrong')
+        self.assertEqual(breadcrumbs[1].a.string.strip().strip('\n'),
+                         u'school_name', 'breadcrumbs 2nd text wrong')
+        self.assertEqual(breadcrumbs[2].a['href'], u'/course/1',
+                         'breadcrumbs 3rd link wrong')
+        self.assertEqual(breadcrumbs[2].a.string.strip().strip('\n'),
+                         u'course_name', 'breadcrumbs 3rd text wrong')
+        self.assertEqual(breadcrumbs[3].string.strip().strip('\n'),
+                         u'article_name', 'breadcrumbs 4th text wrong')
+
+        # articles list
+        articles = container.find('div', 'list-group')
+        articles_links = articles('a')
+
+        self.assertEqual(len(articles_links), 2, 'not 2 articles')
+        self.assertEqual(articles_links[0]['href'], u'/course/article/1',
+                         'articles 1 link wrong')
+        self.assertEqual(articles_links[1]['href'], u'/course/article/2',
+                         'articles 2 link wrong')
+        self.assertIn('active', articles_links[0]['class'],
+                      'article 1 is not active')
+
+        # edit buttons
+        self.assertIsNone(container.find('a', {'id': 'edit-article-button'}),
+                          "student can't edit articles")
+        self.assertIsNone(container.find(
+                              'a', {'id': 'delete-article-modal-button'}),
+                          "student can't delete articles")
+
+        # article name
+        article_name = container.find('h2', 'row')('div')[0]
+        self.assertEqual(article_name.string.strip().strip('\n'),
+                         'article_name', 'wrong article name')
+
+        # article content
+        article_content = container.find('div', 'wiki-article')
+        self.assertEqual(len(article_content('p')), 1,
+                         'too many paragraphs in body')
+        self.assertEqual(article_content('p')[0].string.strip().strip('\n'),
+                         'article_body', 'wrong text for body')
+
+    def test_article_page_with_teacher(self):
+        client = self.client
+
+        # login teacher
+        self.assertTrue(client.login(username=self.teacher.username,
+                                     password=self.teacher_password))
+
+        # get article page
+        response = client.get(reverse(courses.views.article_page,
+                                      kwargs={'article_id': self.article.id}))
+        self.assertEqual(response.status_code, 200,
+                         "Can't get article_page via student")
+
+        html = BeautifulSoup(response.content)
+        container = html.body.find('div', 'container', recursive=False)
+
+        # title
+        self.assertEqual(html.find('title').string.strip().strip('\n'),
+                         'article_name | course_name | 2016-2017',
+                         'Wrong page title')
+
+        # navbar
+        navbar = html.nav
+        navbar_links = navbar.ul('li')
+        self.assertEqual(len(navbar_links), 4, 'navbar must have 4 link')
+        self.assertEqual(navbar_links[0].a['href'], '/course/1',
+                         'navbar link 1 wrong')
+        self.assertEqual(navbar_links[1].a['href'], '/course/1/gradebook',
+                         'navbar link 2 wrong')
+        self.assertEqual(navbar_links[2].a['href'], '/course/1/queue',
+                         'navbar link 3 wrong')
+        self.assertEqual(navbar_links[3].a['href'], '/course/1/settings',
+                         'navbar link 4 wrong')
+
+        # breadcrumbs
+        breadcrumbs = container.find('ul', 'breadcrumb')('li')
+        self.assertEqual(len(breadcrumbs), 4, 'breadcrumbs len is not 4')
+        self.assertEqual(breadcrumbs[0].a['href'], u'/',
+                         'breadcrumbs 1st link wrong')
+        self.assertEqual(breadcrumbs[1].a['href'], u'/school/school_link',
+                         'breadcrumbs 2nd link wrong')
+        self.assertEqual(breadcrumbs[1].a.string.strip().strip('\n'),
+                         u'school_name', 'breadcrumbs 2nd text wrong')
+        self.assertEqual(breadcrumbs[2].a['href'], u'/course/1',
+                         'breadcrumbs 3rd link wrong')
+        self.assertEqual(breadcrumbs[2].a.string.strip().strip('\n'),
+                         u'course_name', 'breadcrumbs 3rd text wrong')
+        self.assertEqual(breadcrumbs[3].string.strip().strip('\n'),
+                         u'article_name', 'breadcrumbs 4th text wrong')
+
+        # articles list
+        articles = container.find('div', 'list-group')
+        articles_links = articles('a')
+
+        self.assertEqual(len(articles_links), 2, 'not 2 articles')
+        self.assertEqual(articles_links[0]['href'], u'/course/article/1',
+                         'articles 1 link wrong')
+        self.assertEqual(articles_links[1]['href'], u'/course/article/2',
+                         'articles 2 link wrong')
+        self.assertIn('active', articles_links[0]['class'],
+                      'article 1 is not active')
+
+        # edit buttons
+        edit_button = container.find('a', {'id': 'edit-article-button'})
+        delete_button = container.find('button',
+                                       {'id': 'delete-article-modal-button'})
+
+        self.assertEqual(edit_button['href'], "/course/edit_article/1",
+                         "wrong edit link")
+        self.assertEqual(edit_button.string.strip().strip('\n'),
+                         u"redaktirovat_article", "wrong edit button text")
+        self.assertEqual(delete_button.string.strip().strip('\n'),
+                         u"udalit_article", "wrong delete button text")
+
+        # article name
+        article_name = container.find('h2', 'row')('div')[0]
+        self.assertEqual(article_name.string.strip().strip('\n'),
+                         'article_name', 'wrong article name')
+
+        # article content
+        article_content = container.find('div', 'wiki-article')
+        self.assertEqual(len(article_content('p')), 1,
+                         'too many paragraphs in body')
+        self.assertEqual(article_content('p')[0].string.strip().strip('\n'),
+                         'article_body', 'wrong text for body')
+
+    def test_create_or_edit_article_page_with_teacher(self):
+        client = self.client
+
+        # login teacher
+        self.assertTrue(client.login(username=self.teacher.username,
+                                     password=self.teacher_password))
+
+        # get edit article page
+        response = client.get(reverse(courses.views.create_article,
+                                      kwargs={'course_id': self.course.id}))
+        self.assertEqual(response.status_code, 200,
+                         "Can't get article_page via student")
+
+        html = BeautifulSoup(response.content)
+        container = html.body.find('div', 'container', recursive=False)
+
+        # title
+        self.assertEqual(html.find('title').string.strip().strip('\n'),
+                         'course_name | 2016-2017',
+                         'Wrong page title')
+
+        # navbar
+        navbar = html.nav
+        navbar_links = navbar.ul('li')
+        self.assertEqual(len(navbar_links), 4, 'navbar must have 4 link')
+        self.assertEqual(navbar_links[0].a['href'], '/course/1',
+                         'navbar link 1 wrong')
+        self.assertEqual(navbar_links[1].a['href'], '/course/1/gradebook',
+                         'navbar link 2 wrong')
+        self.assertEqual(navbar_links[2].a['href'], '/course/1/queue',
+                         'navbar link 3 wrong')
+        self.assertEqual(navbar_links[3].a['href'], '/course/1/settings',
+                         'navbar link 4 wrong')
+
+        # breadcrumbs
+        breadcrumbs = container.find('ul', 'breadcrumb')('li')
+        self.assertEqual(len(breadcrumbs), 4, 'breadcrumbs len is not 4')
+        self.assertEqual(breadcrumbs[0].a['href'], u'/',
+                         'breadcrumbs 1st link wrong')
+        self.assertEqual(breadcrumbs[1].a['href'], u'/school/school_link',
+                         'breadcrumbs 2nd link wrong')
+        self.assertEqual(breadcrumbs[1].a.string.strip().strip('\n'),
+                         u'school_name', 'breadcrumbs 2nd text wrong')
+        self.assertEqual(breadcrumbs[2].a['href'], u'/course/1',
+                         'breadcrumbs 3rd link wrong')
+        self.assertEqual(breadcrumbs[2].a.string.strip().strip('\n'),
+                         u'course_name', 'breadcrumbs 3rd text wrong')
+        self.assertEqual(breadcrumbs[3].string.strip().strip('\n'),
+                         u'redaktirovanie_statii',
+                         'breadcrumbs 4th text wrong')
+
+        # form
+        form = container.find('form', {'id': 'course_article_form'})
+        self.assertIsNotNone(form, "No form")
+
+        form_inputs = form('input', 'form-control')
+        for input_simple in form_inputs:
+            self.assertNotIn('value', input_simple.attrs,
+                          "form inputs id='{}' not empty".format(
+                              input_simple['id']))
+
+        form_textarea = form.textarea
+        self.assertEqual(form_textarea.string.strip().strip('\n'), '',
+                         "form textarea not empty")
+
+        # create article
+        response = self.client.post(reverse(courses.views.create_article,
+                                            kwargs={'course_id':
+                                                    self.course.id}),
+                                    {'name': 'new_article_name',
+                                     'markdown_body': 'new_article_body'})
+        self.assertEqual(response.status_code, 200, "article wasn't created")
+
+        # get edit article page
+        response = client.get(reverse(courses.views.edit_article,
+                                      kwargs={'article_id': 3}))
+        self.assertEqual(response.status_code, 200,
+                         "Can't get article_page via student")
+
+        html = BeautifulSoup(response.content)
+        container = html.body.find('div', 'container', recursive=False)
+
+        # title
+        self.assertEqual(html.find('title').string.strip().strip('\n'),
+                         'course_name | 2016-2017',
+                         'Wrong page title')
+
+        # navbar
+        navbar = html.nav
+        navbar_links = navbar.ul('li')
+        self.assertEqual(len(navbar_links), 4, 'navbar must have 4 link')
+        self.assertEqual(navbar_links[0].a['href'], '/course/1',
+                         'navbar link 1 wrong')
+        self.assertEqual(navbar_links[1].a['href'], '/course/1/gradebook',
+                         'navbar link 2 wrong')
+        self.assertEqual(navbar_links[2].a['href'], '/course/1/queue',
+                         'navbar link 3 wrong')
+        self.assertEqual(navbar_links[3].a['href'], '/course/1/settings',
+                         'navbar link 4 wrong')
+
+        # breadcrumbs
+        breadcrumbs = container.find('ul', 'breadcrumb')('li')
+        self.assertEqual(len(breadcrumbs), 4, 'breadcrumbs len is not 4')
+        self.assertEqual(breadcrumbs[0].a['href'], u'/',
+                         'breadcrumbs 1st link wrong')
+        self.assertEqual(breadcrumbs[1].a['href'], u'/school/school_link',
+                         'breadcrumbs 2nd link wrong')
+        self.assertEqual(breadcrumbs[1].a.string.strip().strip('\n'),
+                         u'school_name', 'breadcrumbs 2nd text wrong')
+        self.assertEqual(breadcrumbs[2].a['href'], u'/course/1',
+                         'breadcrumbs 3rd link wrong')
+        self.assertEqual(breadcrumbs[2].a.string.strip().strip('\n'),
+                         u'course_name', 'breadcrumbs 3rd text wrong')
+        self.assertEqual(breadcrumbs[3].string.strip().strip('\n'),
+                         u'redaktirovanie_statii',
+                         'breadcrumbs 4th text wrong')
+
+        # form
+        form = container.find('form', {'id': 'course_article_form'})
+        self.assertIsNotNone(form, "No form")
+
+        form_inputs = form('input', 'form-control')
+        self.assertEqual(form_inputs[0]['value'], 'new_article_name',
+                         'wrong article name value')
+
+        form_textarea = form.textarea
+        self.assertEqual(form_textarea.string.strip('\n'), 'new_article_body',
+                         "form textarea not empty")
+
+    def test_markdown_on_save(self):
+        wiki = Wiki(name='test_wiki')
+        wiki.save()
+
+        article = Article(wiki=wiki)
+        article.name = 'test_article_name'
+
+        # default markdown
+        article.markdown_body = 'body\n#body\n\n* body\n\n>body\n\n`body`'
+        article.save()
+
+        self.assertEqual(article.html_body,
+                         '<p>body</p>\n<h1>body</h1>\n<ul>\n<li>body</li>\n' +
+                         '</ul>\n<blockquote>\n<p>body</p>\n</blockquote>\n' +
+                         '<p><code>body</code></p>',
+                         'default md does not work')
+
+        # fenced code markdown extension
+        article.markdown_body = '```\nbody\n```'
+        article.save()
+
+        self.assertEqual(article.html_body,
+                         '<pre><code>body\n</code></pre>',
+                         'fenced code md does not work')
+
+        # tables markdown extension
+        article.markdown_body = '1|2\n--|---\n1.1|1.2'
+        article.save()
+
+        self.assertEqual(article.html_body,
+                         '<table>\n<thead>\n<tr>\n<th>1</th>\n<th>2</th>\n' +
+                         '</tr>\n</thead>\n<tbody>\n<tr>\n<td>1.1</td>\n' +
+                         '<td>1.2</td>\n</tr>\n</tbody>\n</table>',
+                         'tables md does not work')
 
 
 class PythonTaskTest(TestCase):
