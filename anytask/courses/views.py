@@ -1242,6 +1242,24 @@ def check_recaptcha(function):
     return wrap
 
 
+def get_new_course_notice_message(notifier, course, school_name, comment):
+    title = "Новая заявка на курс"
+    comment = f"<li>Комментарий: \"{comment}\"</li>" if comment else ""
+    text = (
+        f"<p>Привет! Если ты видишь это письмо, значит пользователь "
+        f"<a href=\"/accounts/profile/{notifier}\">{notifier.get_full_name()}</a> подал заявку на курс. "
+        f"Перейди в <a href=\"/admin/courses/course/{course.id}/change/\">редактирование курса</a>, "
+        f"чтобы узнать подробности.</p>"
+        f"</br>"
+        f"<p>Дополнительные данные: </p>"
+        f"<ul>"
+        f"<li>Школа: \"{school_name}\"</li>"
+        f"{comment}"
+        f"</ul>"
+    )
+    return title, text
+
+
 @require_http_methods(['POST'])
 @login_required
 @check_recaptcha
@@ -1257,6 +1275,8 @@ def ajax_send_form(request):
     course_format = request.POST.get("course_format", "other")
     mark_system = request.POST.get("mark_system", None)
     course_teachers = request.POST.getlist("course_teachers[]", [user.id])
+    if user.id not in course_teachers:
+        course_teachers.append(user.id)
     students_count = {
         "not-scored": json.loads(request.POST.get("not-scored", "0")),
         "incomplete": json.loads(request.POST.get("incomplete", "0")),
@@ -1291,6 +1311,9 @@ def ajax_send_form(request):
     if course_format == "shad":
         course.contest_integrated = integrations["contest"]
         course.send_rb_and_contest_together = integrations["rb-and-contest"]
+        if integrations["rb-and-contest"]:
+            course.contest_integrated = True
+            course.rb_integrated = True
 
     course.private = True
 
@@ -1315,20 +1338,7 @@ def ajax_send_form(request):
 
     message = Message()
     message.sender = user
-    message.title = "Новая заявка на курс"
-    comment = f"<li>Комментарий: \"{comment}\"</li>" if comment else ""
-    message.text = (
-        f"<p>Привет! Если ты видишь это письмо, значит пользователь "
-        f"<a href=\"/accounts/profile/{user}\">{user.get_full_name()}</a> подал заявку на курс. "
-        f"Перейди в <a href=\"/admin/courses/course/{course.id}/change/\">редактирование курса</a>, "
-        f"чтобы узнать подробности.</p>"
-        f"</br>"
-        f"<p>Дополнительные данные: </p>"
-        f"<ul>"
-        f"<li>Школа: \"{school_name}\"</li>"
-        f"{comment}"
-        f"</ul>"
-    )
+    message.title, message.text = get_new_course_notice_message(user, course, school_name, comment)
     message.save()
     message.recipients = recipients
     message.recipients_user = recipients
