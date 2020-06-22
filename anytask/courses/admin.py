@@ -3,8 +3,17 @@ from django.contrib import admin
 
 
 class CourseAdmin(admin.ModelAdmin):
+    def get_queryset(self, request):
+        if request.user.is_superuser or request.user.has_perm('courses.can_moderate'):
+            qs = self.model.any_objects.get_queryset()
+            ordering = self.get_ordering(request)
+            if ordering:
+                qs = qs.order_by(*ordering)
+            return qs
+        return super().get_queryset(request)
+
     list_display = ('name', 'year',)
-    list_filter = ('year__start_year', 'is_active')
+    list_filter = ('year__start_year', 'is_active', 'unready')
     filter_horizontal = ('filename_extensions', 'issue_fields')
     raw_id_fields = ('teachers', 'groups')
     search_fields = ('name', 'year__start_year', 'teachers__username', 'groups__name')

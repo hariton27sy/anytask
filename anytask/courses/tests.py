@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import datetime
+from django.test import override_settings
 
 from django.test import TestCase
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Permission
+from django.contrib.contenttypes.models import ContentType
 from django.conf import settings
 from schools.models import School
 from courses.models import Course, IssueField, FilenameExtension, CourseMarkSystem, MarkField, IssueStatusSystem, \
@@ -13,12 +15,16 @@ from groups.models import Group
 from years.models import Year
 from tasks.models import Task, TaskTaken
 from tasks.management.commands.check_task_taken_expires import Command as CheckTastTakenExpiresCommand
+from mail.models import Message
 
 from bs4 import BeautifulSoup
 from django.core.urlresolvers import reverse
 import courses.pythontask
 import courses.views
 import issues.views
+
+TEST_RECAPTCHA_PUBLIC_KEY = "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
+TEST_RECAPTCHA_PRIVATE_KEY = "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe"
 
 
 def save_result_html(html):
@@ -963,6 +969,373 @@ class ViewsTest(TestCase):
 
         table_body_sum = table.tbody('td')[3]
         self.assertEqual(table_body_sum.span.string.strip().strip('\n'), '3.0')
+
+        def test_validation_rule_create(self):
+            rule = courses.views.ValidationRule("required", True, "введите значение")
+            self.assertDictEqual(dict(rule), {"required": {"message": "введите значение", "rule": True}})
+
+        def test_validation_rules_merge(self):
+            rule1 = courses.views.ValidationRule("required", True, "введите значение")
+            rule2 = courses.views.ValidationRule("digits", True, "это поле должно содержать число")
+            rules = courses.views.ValidationRule.merge([rule1, rule2])
+
+            self.assertDictEqual(rules, {"required": {"rule": True, "message": "введите значение"},
+                                         "digits": {'rule': True, "message": "это поле должно содержать число"}})
+
+        def test_form_element_create(self):
+            element = courses.views.FormElement(
+                "id_el",
+                title="title_el",
+                default="0",
+                name="name_el",
+                reference="reference_el",
+
+                validation_rules=[
+                    courses.views.ValidationRule("required", True, "введите значение"),
+                    courses.views.ValidationRule("digits", True, "это поле должно содержать число"),
+                ]
+            )
+            dependent_element = courses.views.FormElement("dependent")
+            element.set_dependent_elements(courses.views.ElementDependencyTypes.CHECKED_TYPE, [dependent_element])
+            element.set_dependent_elements(courses.views.ElementDependencyTypes.CHECKED_TYPE, [])
+
+            element_dict = {
+                'title': 'title_el',
+                'id': 'id_el',
+                'name': 'name_el',
+                'default': '0',
+                'reference': 'reference_el',
+                'validation': {'required': {'rule': True, 'message': 'введите значение'},
+                               'digits': {'rule': True, 'message': 'это поле должно содержать число'}},
+                'dependencies': {'display': [], 'checked': ['dependent']}
+            }
+
+            self.assertDictEqual(element.obj(), element_dict)
+
+        def test_creation_course_page_anonymously(self):
+            client = self.client
+
+            # get page
+            response = client.get(reverse(courses.views.creation_form))
+            self.assertEqual(response.status_code, 302)
+
+        def test_ajax_send_creation_form_page_anonymously(self):
+            client = self.client
+
+            # get page
+            response = client.get(reverse(courses.views.ajax_send_form))
+            self.assertEqual(response.status_code, 405)
+
+        def test_creation_form_page_with_student(self):
+            client = self.client
+
+            # login
+            self.assertTrue(client.login(username=self.student.username, password=self.student_password))
+
+            # get page
+            response = client.get(reverse(courses.views.creation_form))
+            self.assertEqual(response.status_code, 200)
+
+        def test_creation_form_page_with_teacher(self):
+            client = self.client
+
+            # login
+            self.assertTrue(client.login(username=self.teacher.username, password=self.teacher_password))
+
+            # get page
+            response = client.get(reverse(courses.views.creation_form))
+            self.assertEqual(response.status_code, 200)
+
+        def test_ajax_send_creation_form_invalid_recaptcha(self):
+            client = self.client
+
+            # login
+            self.assertTrue(client.login(username=self.student.username, password=self.student_password))
+
+            # post page
+            post_data = {
+                'school_name': 'school_name',
+                'course_name': 'course_name',
+                'course_year': str(self.year),
+            }
+            response = client.post(reverse(courses.views.ajax_send_form), post_data)
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.content, b'Recaptcha is invalid')
+
+        @override_settings(RECAPTCHA_PUBLIC_KEY=TEST_RECAPTCHA_PUBLIC_KEY)
+        @override_settings(RECAPTCHA_PRIVATE_KEY=TEST_RECAPTCHA_PRIVATE_KEY)
+        def test_ajax_send_creation_form_check_not_enough_information(self):
+            client = self.client
+
+            # login
+            self.assertTrue(client.login(username=self.student.username, password=self.student_password))
+
+            # post page
+            post_data = {
+                'course_name': 'course_name',
+                'course_year': str(self.year),
+            }
+            response = client.post(reverse(courses.views.ajax_send_form), post_data)
+            self.assertEqual(response.status_code, 403)
+
+        @override_settings(RECAPTCHA_PUBLIC_KEY=TEST_RECAPTCHA_PUBLIC_KEY)
+        @override_settings(RECAPTCHA_PRIVATE_KEY=TEST_RECAPTCHA_PRIVATE_KEY)
+        def test_ajax_send_creation_form_check_course(self):
+            client = self.client
+            current_user = self.student
+            user_password = self.student_password
+
+            # login
+            self.assertTrue(client.login(username=current_user.username, password=user_password))
+
+            Course.any_objects.all().delete()
+            self.assertEqual(Course.objects.count(), 0)
+            self.assertEqual(Course.any_objects.count(), 0)
+
+            # post page
+            post_data = {
+                'school_name': 'school_name',
+                'course_name': 'course_name',
+                'course_year': str(self.year),
+            }
+            response = client.post(reverse(courses.views.ajax_send_form), post_data)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.content, b'OK')
+
+            # check course creation
+            self.assertEqual(Course.objects.count(), 0)
+            self.assertEqual(Course.any_objects.count(), 1)
+            course = Course.any_objects.all()[0]
+
+            self.assertIsInstance(course, Course)
+            self.assertEqual(course.name, post_data['course_name'])
+            self.assertEqual(course.name_id, None)
+            self.assertEqual(course.information, '')
+            self.assertEqual(course.year, self.year)
+            self.assertEqual(course.is_active, True)
+            self.assertCountEqual(course.teachers.all(), [current_user])
+            self.assertCountEqual(course.groups.all(), [])
+            self.assertCountEqual(course.issue_fields.all(), [])
+            self.assertEqual(course.contest_integrated, False)
+            self.assertEqual(course.send_rb_and_contest_together, False)
+            self.assertEqual(course.rb_integrated, False)
+            self.assertEqual(course.take_mark_from_contest, False)
+            self.assertEqual(course.send_to_contest_from_users, False)
+            self.assertCountEqual(course.filename_extensions.all(), [])
+            self.assertEqual(course.full_transcript, True)
+            self.assertEqual(course.private, True)
+            self.assertEqual(course.can_be_chosen_by_extern, False)
+            self.assertEqual(course.group_with_extern, None)
+            self.assertEqual(course.mark_system, None)
+            self.assertEqual(course.is_python_task, False)
+            self.assertEqual(course.max_students_per_task, 0)
+            self.assertEqual(course.max_incomplete_tasks, 0)
+            self.assertEqual(course.max_not_scored_tasks, 0)
+            self.assertEqual(course.unready, True)
+
+        @override_settings(RECAPTCHA_PUBLIC_KEY=TEST_RECAPTCHA_PUBLIC_KEY)
+        @override_settings(RECAPTCHA_PRIVATE_KEY=TEST_RECAPTCHA_PRIVATE_KEY)
+        def test_ajax_send_creation_form_check_shad_course(self):
+            client = self.client
+            current_user = self.teacher
+            user_password = self.teacher_password
+
+            # login
+            self.assertTrue(client.login(username=current_user.username, password=user_password))
+
+            Course.any_objects.all().delete()
+            self.assertEqual(Course.objects.count(), 0)
+            self.assertEqual(Course.any_objects.count(), 0)
+
+            # post page
+            course_mark_system = CourseMarkSystem.objects.create(name='course_mark_system')
+            course_teachers = [self.teacher, self.student]
+            post_data = {
+                'school_name': 'school_name',
+                'course_name': 'course_name',
+                'course_year': str(self.year),
+                'course_format': 'shad',
+                'contest': 'true',
+                'mark_system': course_mark_system.name,
+                'incomplete': '3',
+                'course_teachers[]': [user.id for user in course_teachers],
+                'course_description': 'shad course',
+            }
+            response = client.post(reverse(courses.views.ajax_send_form), post_data)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.content, b'OK')
+
+            # check course creation
+            self.assertEqual(Course.objects.count(), 0)
+            self.assertEqual(Course.any_objects.count(), 1)
+            course = Course.any_objects.all()[0]
+
+            self.assertIsInstance(course, Course)
+            self.assertEqual(course.name, post_data['course_name'])
+            self.assertEqual(course.name_id, None)
+            self.assertEqual(course.information, post_data['course_description'])
+            self.assertEqual(course.year, self.year)
+            self.assertEqual(course.is_active, True)
+            self.assertCountEqual(course.teachers.all(), course_teachers)
+            self.assertCountEqual(course.groups.all(), [])
+            self.assertCountEqual(course.issue_fields.all(), [])
+            self.assertEqual(course.contest_integrated, True)
+            self.assertEqual(course.send_rb_and_contest_together, False)
+            self.assertEqual(course.rb_integrated, False)
+            self.assertEqual(course.take_mark_from_contest, False)
+            self.assertEqual(course.send_to_contest_from_users, False)
+            self.assertCountEqual(course.filename_extensions.all(), [])
+            self.assertEqual(course.full_transcript, True)
+            self.assertEqual(course.private, True)
+            self.assertEqual(course.can_be_chosen_by_extern, False)
+            self.assertEqual(course.group_with_extern, None)
+            self.assertEqual(course.mark_system, course_mark_system)
+            self.assertEqual(course.is_python_task, False)
+            self.assertEqual(course.max_students_per_task, 0)
+            self.assertEqual(course.max_incomplete_tasks, 0)
+            self.assertEqual(course.max_not_scored_tasks, 0)
+            self.assertEqual(course.unready, True)
+
+        @override_settings(RECAPTCHA_PUBLIC_KEY=TEST_RECAPTCHA_PUBLIC_KEY)
+        @override_settings(RECAPTCHA_PRIVATE_KEY=TEST_RECAPTCHA_PRIVATE_KEY)
+        def test_ajax_send_creation_form_check_python_course(self):
+            client = self.client
+            current_user = self.student
+            user_password = self.student_password
+
+            # login
+            self.assertTrue(client.login(username=current_user.username, password=user_password))
+
+            Course.any_objects.all().delete()
+            self.assertEqual(Course.objects.count(), 0)
+            self.assertEqual(Course.any_objects.count(), 0)
+
+            # post page
+            course_mark_system = CourseMarkSystem.objects.create(name='course_mark_system')
+            course_teachers = [current_user]
+            post_data = {
+                'school_name': 'school_name',
+                'course_name': 'course_name',
+                'course_year': str(self.year),
+                'course_format': 'task',
+                'mark_system': course_mark_system,
+                'course_teachers[]': [user.id for user in course_teachers],
+                'not-scored': 2,
+                'incomplete': 3,
+                'rb': 'false',
+                'contest': 'true',
+                'rb-and-contest': 'false',
+                'course_description': 'course_description',
+                'comment': 'comment',
+            }
+            response = client.post(reverse(courses.views.ajax_send_form), post_data)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.content, b'OK')
+
+            # check course creation
+            self.assertEqual(Course.objects.count(), 0)
+            self.assertEqual(Course.any_objects.count(), 1)
+            course = Course.any_objects.all()[0]
+
+            self.assertIsInstance(course, Course)
+            self.assertEqual(course.name, post_data['course_name'])
+            self.assertEqual(course.name_id, None)
+            self.assertEqual(course.information, post_data['course_description'])
+            self.assertEqual(course.year, self.year)
+            self.assertEqual(course.is_active, True)
+            self.assertCountEqual(course.teachers.all(), course_teachers)
+            self.assertCountEqual(course.groups.all(), [])
+            self.assertCountEqual(course.issue_fields.all(), [])
+            self.assertEqual(course.contest_integrated, False)
+            self.assertEqual(course.send_rb_and_contest_together, False)
+            self.assertEqual(course.rb_integrated, False)
+            self.assertEqual(course.take_mark_from_contest, False)
+            self.assertEqual(course.send_to_contest_from_users, False)
+            self.assertCountEqual(course.filename_extensions.all(), [])
+            self.assertEqual(course.full_transcript, True)
+            self.assertEqual(course.private, True)
+            self.assertEqual(course.can_be_chosen_by_extern, False)
+            self.assertEqual(course.group_with_extern, None)
+            self.assertEqual(course.mark_system, course_mark_system)
+            self.assertEqual(course.is_python_task, True)
+            self.assertEqual(course.max_students_per_task, 0)
+            self.assertEqual(course.max_incomplete_tasks, post_data['incomplete'])
+            self.assertEqual(course.max_not_scored_tasks, post_data['not-scored'])
+            self.assertEqual(course.unready, True)
+
+        def test_new_course_notice_message(self):
+            current_user = self.student
+            course = self.course
+            school = self.school
+            comment = "твой комментарий"
+            title = 'Новая заявка на курс'
+            text = (
+                f"<p>Привет! Если ты видишь это письмо, значит пользователь "
+                f"<a href=\"/accounts/profile/{current_user}\">{current_user.get_full_name()}</a> подал заявку на курс. "
+                f"Перейди в <a href=\"/admin/courses/course/{course.id}/change/\">редактирование курса</a>, "
+                f"чтобы узнать подробности.</p>"
+                f"</br>"
+                f"<p>Дополнительные данные: </p>"
+                f"<ul>"
+                f"<li>Школа: \"{school.name}\"</li>"
+                f"<li>Комментарий: \"{comment}\"</li>"
+                f"</ul>"
+            )
+
+            message_title, message_text = courses.views.get_new_course_notice_message(
+                current_user, course, school.name, comment)
+            self.assertEqual(message_title, title)
+            self.assertEqual(message_text, text)
+
+        @override_settings(RECAPTCHA_PUBLIC_KEY=TEST_RECAPTCHA_PUBLIC_KEY)
+        @override_settings(RECAPTCHA_PRIVATE_KEY=TEST_RECAPTCHA_PRIVATE_KEY)
+        def test_ajax_send_creation_form_check_message(self):
+            client = self.client
+            current_user = self.student
+            user_password = self.student_password
+
+            # login
+            self.assertTrue(client.login(username=current_user.username, password=user_password))
+
+            # set moderators
+            moderator = User.objects.create_user(username='moderator', password='password')
+            content_type = ContentType.objects.get_for_model(Course)
+            permission = Permission.objects.get(
+                codename='can_moderate',
+                content_type=content_type,
+            )
+
+            moderators = [moderator, current_user]
+            for user in moderators:
+                user.user_permissions.add(permission)
+
+            # post page
+            post_data = {
+                'school_name': 'new_school',
+                'course_name': 'new_course',
+                'course_year': str(self.year),
+                'comment': 'comment.....'
+            }
+            response = client.post(reverse(courses.views.ajax_send_form), post_data)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.content, b'OK')
+
+            # check message creation
+            messages_count = Message.objects.count()
+            self.assertEqual(messages_count, 1)
+            message = Message.objects.get(id=1)
+
+            course = Course.any_objects.filter(unready=True)[0]
+            message_title, message_text = courses.views.get_new_course_notice_message(
+                current_user, course, post_data['school_name'], post_data['comment'])
+
+            self.assertEqual(message.sender, current_user)
+            self.assertEqual(message.title, message_title)
+            self.assertEqual(message.text, message_text)
+            self.assertCountEqual(message.recipients.all(), moderators)
+            self.assertCountEqual(message.recipients_user.all(), moderators)
+            self.assertCountEqual(message.recipients_course.all(), [])
+            self.assertCountEqual(message.recipients_group.all(), [])
 
 
 class PythonTaskTest(TestCase):

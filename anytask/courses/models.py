@@ -2,6 +2,7 @@
 
 from django.core.urlresolvers import reverse
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.db.models.signals import m2m_changed
@@ -89,6 +90,11 @@ class CourseMarkSystem(models.Model):
         return str(self.name)
 
 
+class ReadyCoursesManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(Q(unready=False) | Q(unready=None))
+
+
 class Course(models.Model):
     name = models.CharField(max_length=191, db_index=True, null=False, blank=False)
     name_id = models.CharField(max_length=191, db_index=True, null=True, blank=True)
@@ -148,6 +154,11 @@ class Course(models.Model):
     has_attendance_log = models.BooleanField(db_index=False, null=False, blank=False, default=False)
 
     show_contest_run_id = models.BooleanField(db_index=False, null=False, blank=False, default=True)
+
+    unready = models.NullBooleanField(null=True, blank=False, default=False)
+
+    objects = ReadyCoursesManager()
+    any_objects = models.Manager()
 
     def __str__(self):
         return str(self.name)
@@ -260,6 +271,11 @@ class Course(models.Model):
 
     def is_contest_integrated(self):
         return self.contest_integrated or self.task_set.filter(contest_integrated=True).exists()
+
+    class Meta:
+        permissions = [
+            ("can_moderate", "Сan moderate course"),
+        ]
 
 
 class DefaultTeacher(models.Model):

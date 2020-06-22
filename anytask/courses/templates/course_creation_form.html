@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load django_bootstrap_breadcrumbs %}
+{% load crispy_forms_tags %}
+
+{% block title %}Создать новый курс{% endblock %}
+
+{% block scripts %}
+    {% include "course_creation_form_js.html" %}
+    <link href="{{ STATIC_URL }}course_creation_form.css" rel='stylesheet'/>
+{% endblock scripts %}
+
+{% block breadcrumbs %}
+    {{ block.super }}
+    {% breadcrumb "Cоздать новый курс" "" %}
+{% endblock breadcrumbs %}
+
+{% block content %}
+    {{ block.super }}
+    <div class="row">
+        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-10 col-xl-10">
+            <div id="sending_status"></div>
+            <div class="card">
+                <div class="card-block">
+                    <div class="tab-pane" role="tabpanel">
+                        <h5 class="card-title">Заявка на новый курс</h5>
+                        <p>Данная форма будет рассмотрена администраторами</p>
+                        <div class="course-creation-form">
+                            <form method="post" id="course_creation_form">
+                                {% csrf_token %}
+                                {% include "creation_form/field_inline.html" with type="text" label="Школа" id="school_name" name="school_name" only %}
+                                {% include "creation_form/field_inline.html" with type="text" label="Название" id="course_name" name="course_name" only %}
+                                {% include "creation_form/field_inline.html" with type="select" label="Учебный год" id="course_year" name="course_year" items=years only %}
+                                {% include "creation_form/field_inline.html" with type="radios" label="Формат" id="format" name="format" items=formats only %}
+                                {% include "creation_form/field_inline.html" with type="select" label="Система оценки" id="mark_system" name="mark_system" items=mark_systems only %}
+                                <div class="form-search form-recipients">
+                                    {% include "creation_form/field_inline.html" with type="tagsinput" label="Преподаватели" id="course_teachers" name="course_teachers" placeholder="начните вводить имя..." only %}
+                                </div>
+                                {% for  field in students_count %}
+                                    {% include "creation_form/field_inline.html" with type="text" label=field.title id=field.id name=field.id reference=field.reference placeholder=field.default only %}
+                                {% endfor %}
+                                {% for integration in integrations %}
+                                    {% include "creation_form/field_block.html" with type="checkbox" id=integration.id name=integration.id item=integration reference=integration.reference only %}
+                                {% endfor %}
+                                {% include "creation_form/field_block.html" with type="textarea" label="Описание" id="course_description" name="course_description" only %}
+                                {% include "creation_form/field_block.html" with type="textarea" label="Комментарии к курсу" id="comment" name="comment" placeholder="Сообщите, если у Вас есть другие пожелания :)" only %}
+                                <div class="form-group row">
+                                    <div class="controls col-xs-12 col-md-12">
+                                        <div id="recaptcha"></div>
+                                        <small class="text-help"></small>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-primary" id="btn_send_form">Отправить</button>
+                            </form>
+                            <script src="https://www.google.com/recaptcha/api.js?onload=recaptchaOnload&render=explicit"
+                                    async defer>
+                            </script>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

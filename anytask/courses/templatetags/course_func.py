@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 from django import template
 from django.utils.translation import ugettext as _
+from django.utils.safestring import mark_safe
 from issues.models import Issue
 from issues.model_issue_status import IssueStatus
 from courses.models import DefaultTeacher
+
+import json
 
 register = template.Library()
 
@@ -38,3 +41,8 @@ def get_default_teacher(group, course):
         return DefaultTeacher.objects.get(group=group, course=course).teacher.get_full_name()
     except DefaultTeacher.DoesNotExist:
         return ""
+
+
+@register.filter(is_safe=True)
+def javascript(obj):
+    return mark_safe(json.dumps(obj))
