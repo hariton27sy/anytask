@@ -102,7 +102,7 @@ class Article(models.Model):
     wiki = models.ForeignKey(Wiki, on_delete=models.CASCADE, null=False)
     name = models.CharField(max_length=100, db_index=False, null=False,
                             blank=False)
-    markdown_body = models.TextField(null=True)
+    markdown_body = models.TextField(null=False, blank=False)
     html_body = models.TextField(editable=False, null=True)
 
     def __str__(self):
