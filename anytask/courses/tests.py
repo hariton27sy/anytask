@@ -986,7 +986,7 @@ class ViewsTest(TestCase):
                                       kwargs={'course_id': self.course.id}),
                                {'name': 'name_article',
                                 'markdown_body': 'markdown_body'})
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 302, "unauthorized user can create article")
 
     def test_create_article_with_student(self):
         client = self.client
@@ -999,7 +999,7 @@ class ViewsTest(TestCase):
                                        kwargs={'course_id': self.course.id}),
                                {'name': 'name_article',
                                 'markdown_body': 'markdown_body'})
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 403, "student can create article")
 
     def test_create_article_with_teacher(self):
         client = self.client
@@ -1013,7 +1013,7 @@ class ViewsTest(TestCase):
                                        kwargs={'course_id': self.course.id}),
                                {'name': 'name_article',
                                 'markdown_body': 'markdown_body'})
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200, "article wasn't created")
 
     def test_edit_article_anonymously(self):
         client = self.client
@@ -1023,7 +1023,7 @@ class ViewsTest(TestCase):
                                       kwargs={'article_id': self.article.id}),
                                {'name': 'name_article',
                                 'markdown_body': 'markdown_body'})
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 302, "unauthorized user can edit article")
 
     def test_edit_article_with_student(self):
         client = self.client
@@ -1036,7 +1036,7 @@ class ViewsTest(TestCase):
                                        kwargs={'article_id': self.article.id}),
                                {'name': 'name_article',
                                 'markdown_body': 'markdown_body'})
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 403, "student can edit article")
 
     def test_edit_article_with_teacher(self):
         client = self.client
@@ -1050,7 +1050,7 @@ class ViewsTest(TestCase):
                                        kwargs={'article_id': self.article.id}),
                                {'name': 'name_article',
                                 'markdown_body': 'markdown_body'})
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200, "article wasn't edited")
 
     def test_delete_article_anonymously(self):
         client = self.client
@@ -1059,7 +1059,7 @@ class ViewsTest(TestCase):
         response = client.post(reverse(courses.views.delete_article,
                                       kwargs={'article_id':
                                               self.article_to_delete.id}))
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 302, "unauthorized user can delete article")
 
     def test_delete_article_with_student(self):
         client = self.client
@@ -1071,7 +1071,7 @@ class ViewsTest(TestCase):
         response = client.post(reverse(courses.views.delete_article,
                                        kwargs={'article_id':
                                                self.article_to_delete.id}))
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 403, "student can delete article")
 
     def test_delete_article_with_teacher(self):
         client = self.client
@@ -1084,7 +1084,7 @@ class ViewsTest(TestCase):
         response = client.post(reverse(courses.views.delete_article,
                                        kwargs={'article_id':
                                                self.article_to_delete.id}))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200, "article wasn't deleted")
 
     def test_article_page_with_post_method(self):
         client = self.client
@@ -1092,7 +1092,7 @@ class ViewsTest(TestCase):
         # post
         response = client.post(reverse(courses.views.article_page,
                                        kwargs={'article_id': self.article.id}))
-        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.status_code, 405, 'POST method is allowed')
 
     def test_delete_article_with_get_method(self):
         client = self.client
@@ -1101,7 +1101,7 @@ class ViewsTest(TestCase):
         response = client.get(reverse(courses.views.delete_article,
                                        kwargs={'article_id':
                                                self.article_to_delete.id}))
-        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.status_code, 405, 'GET method is allowed')
 
     def test_create_article_page_anonymously(self):
         client = self.client
@@ -1109,7 +1109,7 @@ class ViewsTest(TestCase):
         # get page
         response = client.get(reverse(courses.views.create_article,
                                       kwargs={'course_id': self.course.id}))
-        self.assertEqual(response.status_code, 302, "Need login for task_create_page")
+        self.assertEqual(response.status_code, 302, "Need login for create_article_page")
 
     def test_edit_article_page_anonymously(self):
         client = self.client
@@ -1117,7 +1117,7 @@ class ViewsTest(TestCase):
         # get page
         response = client.get(reverse(courses.views.edit_article,
                                       kwargs={'article_id': self.article.id}))
-        self.assertEqual(response.status_code, 302, "Need login for task_edit_page")
+        self.assertEqual(response.status_code, 302, "Need login for edit_article_page")
 
     def test_article_page_anonymously(self):
         client = self.client
@@ -1125,7 +1125,7 @@ class ViewsTest(TestCase):
         # get page
         response = client.get(reverse(courses.views.article_page,
                                       kwargs={'article_id': self.article.id}))
-        self.assertEqual(response.status_code, 302, "Need login for task_edit_page")
+        self.assertEqual(response.status_code, 302, "Need login for article_page")
 
     def test_article_page_with_student(self):
         client = self.client
