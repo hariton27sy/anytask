@@ -768,6 +768,7 @@ msgstr "При получении данных произошла ошибка."
 #: users/templates/user_profile.html:699
 #: users/templates/user_settings_js.html:53
 #: users/templates/user_settings_js.html:61
+#: courses/templates/courses/article.html:201
 msgid "zakryt"
 msgstr "Закрыть"
 
@@ -781,6 +782,7 @@ msgstr "Ошибка отправки."
 
 #: courses/templates/courses/settings_js.html:262
 #: staff/templates/staff_js.html:287 users/templates/user_settings_js.html:56
+#: courses/templates/courses/edit_article_js.html:24
 msgid "sohraneno_uspeshno"
 msgstr "Данные сохранены."
 
@@ -789,6 +791,7 @@ msgstr "Данные сохранены."
 #: staff/templates/staff_js.html:304 staff/templates/staff_js.html.py:350
 #: tasks/templates/task_create_or_edit_js.html:260
 #: users/templates/user_settings_js.html:64
+#: courses/templates/courses/edit_article_js.html:38
 msgid "oshibka_pri_sohranenii"
 msgstr "Произошла ошибка. Попробуйте сохранить ещё раз."
 
@@ -2512,3 +2515,59 @@ msgstr "Чтобы отвязать свой профиль, обратитес�
 
 #~ msgid "nabludatelem"
 #~ msgstr "наблюдателем"
+
+#: courses/templates/courses/course.html:124
+msgid "wiki"
+msgstr "Вики"
+
+#: courses/templates/courses/course.html:628
+msgid "dobavit_article"
+msgstr "Добавить статью"
+
+msgid "redaktirovanie_statii"
+msgstr "Редактирование статьи"
+
+#: courses/templates/courses/article_js.html:23
+msgid "udaleno_uspeshno"
+msgstr "Удалено успешно"
+
+#: courses/templates/courses/article_js.html:32
+msgid "oshibka_pri_udalenii"
+msgstr "Ошибка при удалении"
+
+#: courses/templates/courses/article.html:153
+msgid "spisok_statei"
+msgstr "Список статей"
+
+#: courses/templates/courses/article.html:177
+msgid "redaktirovat_article"
+msgstr "Редактировать статью"
+
+#: courses/templates/courses/article.html:178
+#: courses/templates/courses/article.html:195
+msgid "udalit_article"
+msgstr "Удалить статью"
+
+#: courses/templates/courses/article.html:200
+msgid "udalit"
+msgstr "Удалить"
+
+#: courses/templates/courses/article.html:198
+msgid "vi uverenni chto hotite udalit article"
+msgstr "Вы уверенны, что хотите удалить статью"
+
+#: courses/templates/courses/edit_article.html:25
+msgid "redaktirovanie_statii"
+msgstr "Редактирование статьи"
+
+#: courses/templates/courses/edit_article_js.html:38
+msgid "nazvanie_statii_neobhodimo"
+msgstr "Укажите название статьи"
+
+#: courses/templates/courses/edit_article_js.html:39
+msgid "slishkom_dlinnoe"
+msgstr "Слишком длинное название статьи"
+
+#: courses/templates/courses/edit_article_js.html:72
+msgid "neobhodim_tekst"
+msgstr "Введите текст статьи"

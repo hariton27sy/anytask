@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from django.db.models.signals import m2m_changed
 from django.db.models.signals import post_save
+from markdown import markdown
 
 from groups.models import Group
 from issues.model_issue_status import IssueStatusSystem
@@ -89,6 +90,30 @@ class CourseMarkSystem(models.Model):
         return str(self.name)
 
 
+class Wiki(models.Model):
+    name = models.CharField(max_length=10, db_index=False, null=False,
+                            blank=False)
+
+    def __str__(self):
+        return self.name
+
+
+class Article(models.Model):
+    wiki = models.ForeignKey(Wiki, on_delete=models.CASCADE, null=False)
+    name = models.CharField(max_length=100, db_index=False, null=False,
+                            blank=False)
+    markdown_body = models.TextField(null=False, blank=False)
+    html_body = models.TextField(editable=False, null=True)
+
+    def __str__(self):
+        return self.name
+
+    def save(self):
+        self.html_body = markdown(self.markdown_body,
+                                  extensions=['fenced_code', 'tables'])
+        super(Article, self).save()
+
+
 class Course(models.Model):
     name = models.CharField(max_length=191, db_index=True, null=False, blank=False)
     name_id = models.CharField(max_length=191, db_index=True, null=True, blank=True)
@@ -148,6 +173,8 @@ class Course(models.Model):
     has_attendance_log = models.BooleanField(db_index=False, null=False, blank=False, default=False)
 
     show_contest_run_id = models.BooleanField(db_index=False, null=False, blank=False, default=True)
+
+    wiki = models.OneToOneField(Wiki, db_index=True, null=True, blank=True)
 
     def __str__(self):
         return str(self.name)

@@ -59,6 +59,15 @@ class DefaultTeacherForm(forms.Form):
             )
 
 
+class ArticleForm(forms.Form):
+    name = forms.CharField(label=u'Название статьи', max_length=100,
+                           widget=forms.TextInput(
+                               attrs={"class": "form-control"}))
+    markdown_body = forms.CharField(label=u'Текст статьи',
+                                    widget=forms.Textarea(
+                                        attrs={"class": "form-control"}))
+
+
 def default_teacher_forms_factory(course, group, teacher=None, post_data=None):
     teacher_id = 0
     if teacher:

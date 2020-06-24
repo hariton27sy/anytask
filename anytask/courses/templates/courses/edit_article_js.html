@@ -1,0 +1,118 @@
+<script src="{{ STATIC_URL }}jquery.validate.min.js"></script>
+{% load i18n %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.quicksearch/2.3.0/jquery.quicksearch.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/multi-select/0.9.12/js/jquery.multi-select.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.matchHeight/0.7.0/jquery.matchHeight-min.js" type="text/javascript"></script>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/multi-select/0.9.12/css/multi-select.min.css" rel="stylesheet">
+
+
+<script type="text/javascript">
+    $.fn.matchHeight._maintainScroll = true;
+
+    $(document).ready(function() {
+        $('#course_article_form')
+            .change(function() {
+                $('#course_article_form_error_text').empty();
+            })
+            .validate({
+                submitHandler: function(form) {
+                    $('#course_article_form').ajaxSubmit({
+                        success: function (data) {
+                            $('#course_article_form_error_text').html('<div class="alert alert-success" role ="alert" id="edit_task_err">' +
+                                    '                                     <a class="close" data-dismiss="alert">&times;</a>' +
+                                    '                                     <span>{% trans "sohraneno_uspeshno" %}</span>' +
+                                    '                                   </div>');
+                            if ($('#course_article_form').data('quit')) {
+                                if (document.referrer.includes('attendance') && data.redirect_page)
+                                    window.location.replace(data.redirect_page);
+                                else
+                                    redirect();
+                            }
+                            else
+                                remove_disabled();
+                        },
+                        error: function (data) {
+                            $('#course_article_form_error_text').html('<div  class="alert alert-danger" role ="alert" id="edit_task_err">' +
+                                    '                                     <a class="close" data-dismiss="alert">&times;</a>' +
+                                    '                                     <span>{% trans "oshibka_pri_sohranenii" %}</span>' +
+                                    '                                   </div>');
+                            remove_disabled();
+                        }
+                    });
+                },
+
+                rules: {
+                    name: {
+                        required: true,
+                        maxlength: 100,
+                    },
+                    markdown_body: {
+                        required: true,
+                    },
+                },
+
+                highlight: function (input) {
+                    $(input).removeClass('form-control-success').addClass('form-control-danger');
+                    $(input).closest('.form-group').removeClass('has-success').addClass('has-danger');
+                },
+
+                success: function (label) {
+                    label.addClass('valid');
+                    label.closest('.text-help').siblings('.form-control').removeClass('form-control-danger').addClass('form-control-success');
+                    label.closest('.form-group').removeClass('has-danger').addClass('has-success');
+                },
+
+                messages: {
+                    name: {
+                        required: "{% trans "nazvanie_statii_neobhodimo" %}",
+                        maxlength: "{% trans "slishkom_dlinnoe" %}"
+                    },
+                    markdown_body: {
+                        required: "{% trans "neobhodim_tekst" %}"
+                    }
+                },
+
+                errorPlacement: function(error, element) {
+                    $(element).closest("div.controls").find('small.text-help').empty().append(error);
+                }
+            });
+
+        $('#button_cancel_quit').click(function() {
+            set_disabled();
+            redirect();
+        });
+
+        $('#button_save').click(function() {
+            set_disabled();
+            $('#course_article_form').data('quit', false).submit();
+            remove_disabled()
+        });
+
+        $('#button_save_quit').click(function() {
+            set_disabled();
+            $('#course_article_form').data('quit', true).submit();
+            remove_disabled()
+        });
+    });
+
+    function set_disabled() {
+        var d = 'disabled';
+
+        $('#button_cancel_quit').addClass(d).attr(d, d).prop(d, true);
+        $('#button_save').addClass(d).attr(d, d).prop(d, true);
+        $('#button_save_quit').addClass(d).attr(d, d).prop(d, true);
+    }
+
+    function remove_disabled() {
+        var d = 'disabled';
+
+        $('#button_cancel_quit').removeClass(d).removeAttr(d).prop(d, false);
+        $('#button_save').removeClass(d).removeAttr(d).prop(d, false);
+        $('#button_save_quit').removeClass(d).removeAttr(d).prop(d, false);
+    }
+
+    function redirect() {
+        window.location.href = document.referrer + "#wiki-tab";
+    }
+</script>

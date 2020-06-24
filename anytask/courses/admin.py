@@ -1,4 +1,4 @@
-from courses.models import Course, FilenameExtension, DefaultTeacher, MarkField, CourseMarkSystem, StudentCourseMark
+from courses.models import Course, FilenameExtension, DefaultTeacher, MarkField, CourseMarkSystem, StudentCourseMark, Wiki, Article
 from django.contrib import admin
 
 
@@ -35,3 +35,5 @@ admin.site.register(DefaultTeacher, DefaultTeacherAdmin)
 admin.site.register(CourseMarkSystem, CourseMarkSystemAdmin)
 admin.site.register(MarkField, MarkFieldAdmin)
 admin.site.register(StudentCourseMark, StudentCourseMarkAdmin)
+admin.site.register(Wiki)
+admin.site.register(Article)

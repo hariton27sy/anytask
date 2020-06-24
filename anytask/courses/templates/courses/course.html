@@ -118,6 +118,11 @@
                     <a id="material-link" href="#material-tab"
                        class="list-group-item scrollto">
                         <span class="fa fa-book"></span> {% trans "materials" %}</a>
+                    {% if course.wiki %}
+                        <a id="wiki-link" href="#wiki-tab"
+                            class="list-group-item scrollto">
+                        <span class="fa fa-wikipedia-w"></span> {% trans "wiki" %}</a>
+                    {% endif %}
                 </div>
                 <br>
             </div>
@@ -614,6 +619,26 @@
                             </div>
                         {% endif %}
                     </div>
+                    {% if course.wiki %}
+                        <div class="tab-pane fade" id="wiki-tab" role="tabpanel">
+                            <h5>{% trans "wiki" %}
+                                {% if course.can_edit %}
+                                    <div class="btn-group pull-xs-right">
+                                        <a type="button" class="btn btn-secondary btn-sm"
+                                           href="/course/{{ course.id }}/create_article">{% trans "dobavit_article" %}</a>
+                                    </div>
+                                {% endif %}
+                            </h5>
+
+                            <br>
+                            <div class="list-group list-group-flush">
+                                {% for article in wiki_articles %}
+                                    <a class="list-group-item list-group-item-action p-l-0 ellipsis-overflow text-primary"
+                                       href="/course/article/{{ article.id }}">{{ article.name }}</a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
 

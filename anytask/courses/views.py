@@ -18,7 +18,7 @@ import logging
 import requests
 from reversion import revisions as reversion
 
-from courses.models import Course, DefaultTeacher, StudentCourseMark, MarkField, FilenameExtension
+from courses.models import Course, DefaultTeacher, StudentCourseMark, MarkField, FilenameExtension, Wiki, Article
 from groups.models import Group
 from tasks.models import Task, TaskGroupRelations
 from years.models import Year
@@ -36,7 +36,7 @@ from lessons.models import Lesson
 from common.ordered_dict import OrderedDict
 from common.timezone import convert_datetime
 
-from courses.forms import default_teacher_forms_factory, DefaultTeacherForm
+from courses.forms import default_teacher_forms_factory, DefaultTeacherForm, ArticleForm
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML
@@ -266,6 +266,7 @@ def course_page(request, course_id):
     context['school'] = schools[0] if schools else ''
     context['visible_attendance_log'] = course.user_can_see_attendance_log(request.user)
     context['jupyterhub_url'] = getattr(settings, 'JUPYTERHUB_URL', '')
+    context['wiki_articles'] = course.wiki.article_set.all() if course.wiki else None
 
     return render(request, 'courses/course.html', context)
 
@@ -471,8 +472,7 @@ def tasklist_shad_cpp(request, course, seminar=None, group=None):
         'visible_hide_button': Task.objects.filter(Q(course=course) & Q(is_hidden=True)).exists(),
         'show_hidden_tasks': show_hidden_tasks,
         'visible_hide_button_users': len(academ_students),
-        'show_academ_users': show_academ_users
-
+        'show_academ_users': show_academ_users,
     }
 
     return context
@@ -1085,3 +1085,145 @@ def view_statistic(request, course_id):
 
     if course.is_python_task:
         return pythontask.python_stat(request, course)
+
+
+@require_http_methods(['GET', 'POST'])
+@login_required
+def create_article(request, course_id):
+    user = request.user
+    course = get_object_or_404(Course, id=course_id)
+
+    if not course.user_can_edit_course(user):
+        raise PermissionDenied
+
+    if request.method == 'POST':
+        return update_article(request, course)
+
+    article_form = ArticleForm()
+    schools = course.school_set.all()
+
+    context = {
+        "form": article_form,
+        "course": course,
+        "school": schools[0] if schools else '',
+        'visible_queue': course.user_can_see_queue(user),
+        'user_is_teacher': course.user_is_teacher(user),
+        'visible_attendance_log': course.user_can_see_attendance_log(user),
+    }
+
+    return render(request, "courses/edit_article.html", context)
+
+
+@require_http_methods(['GET', 'POST'])
+@login_required
+def edit_article(request, article_id):
+    user = request.user
+    article = get_object_or_404(Article, id=article_id)
+    course = article.wiki.course
+
+    if not course.user_can_edit_course(user):
+        raise PermissionDenied
+
+    if request.method == 'POST':
+        return update_article(request, course, article_id)
+
+    form_data = {
+        'name': article.name,
+        'markdown_body': article.markdown_body
+    }
+
+    article_form = ArticleForm(form_data)
+    schools = course.school_set.all()
+
+    context = {
+        "form": article_form,
+        "course": course,
+        "school": schools[0] if schools else '',
+        'visible_queue': course.user_can_see_queue(user),
+        'user_is_teacher': course.user_is_teacher(user),
+        'visible_attendance_log': course.user_can_see_attendance_log(user),
+    }
+
+    return render(request, "courses/edit_article.html", context)
+
+
+@require_http_methods(['GET'])
+@login_required
+def article_page(request, article_id):
+    user = request.user
+    if not user.profile.is_active():
+        raise PermissionDenied
+
+    article = get_object_or_404(Article, id=article_id)
+
+    course = article.wiki.course
+    schools = course.school_set.all()
+
+    if course.private and not course.user_is_attended(request.user):
+        return render(request, 'courses/course_forbidden.html',
+                      {"course": course,
+                       'school': schools[0] if schools else '',
+                       'invite_form': InviteActivationForm()})
+
+    can_edit = False
+
+    if course.user_can_edit_course(user):
+        can_edit = True
+
+    context = {
+        'course': course,
+        'article': article,
+        'user_can_edit': can_edit,
+        'school': schools[0] if schools else '',
+        'article_list': course.wiki.article_set.all(),
+        'visible_queue': course.user_can_see_queue(user),
+        'user_is_teacher': course.user_is_teacher(user),
+        'visible_attendance_log': course.user_can_see_attendance_log(user),
+    }
+
+    return render(request, 'courses/article.html', context)
+
+
+@require_http_methods(['POST'])
+@login_required
+def delete_article(request, article_id):
+    user = request.user
+    if not user.profile.is_active():
+        raise PermissionDenied
+
+    article = get_object_or_404(Article, id=article_id)
+    course = article.wiki.course
+
+    if not course.user_can_edit_course(user):
+        raise PermissionDenied
+
+    article.delete()
+
+    return HttpResponse(
+        json.dumps({'page_title': course.name + ' | ' + str(course.year),
+                    'redirect_page': '/course/' + str(
+                        course.id)
+                    }),
+        content_type="application/json"
+    )
+
+
+def update_article(request, course, article_id=None):
+    name = request.POST.get("name")
+    markdown_body = request.POST.get("markdown_body")
+
+    if article_id:
+        article = get_object_or_404(Article, id=article_id)
+    else:
+        article = Article(wiki=course.wiki)
+
+    article.name = name
+    article.markdown_body = markdown_body
+    article.save()
+
+    return HttpResponse(
+        json.dumps({'page_title': course.name + ' | ' + str(course.year),
+                    'redirect_page': '/course/' + str(
+                        course.id)
+                    }),
+        content_type="application/json")
